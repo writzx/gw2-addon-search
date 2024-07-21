@@ -1,9 +1,9 @@
-[submodule "RCGG-lib-nexus-api"]
-	path = RCGG-lib-nexus-api
+[submodule "include/nexus"]
+	path = include/nexus
 	url = https://github.com/RaidcoreGG/RCGG-lib-nexus-api
-[submodule "RCGG-lib-mumble-api"]
-	path = RCGG-lib-mumble-api
+[submodule "include/mumble"]
+	path = include/mumble
 	url = https://github.com/RaidcoreGG/RCGG-lib-mumble-api
-[submodule "imgui"]
-	path = imgui
+[submodule "include/imgui"]
+	path = include/imgui
 	url = https://github.com/RaidcoreGG/imgui

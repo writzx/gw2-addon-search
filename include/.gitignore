@@ -1,0 +1,5 @@
+imgui/*
+mumble/*
+nexus/*
+sqlite/*
+!sqlite/init_sqlite.bat

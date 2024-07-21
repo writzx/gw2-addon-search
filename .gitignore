@@ -1,0 +1,7 @@
+.vs
+.idea
+.editorconfig
+*.txt
+x64
+Debug
+Search/
