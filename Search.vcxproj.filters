@@ -17,6 +17,12 @@
     <ClCompile Include="include\imgui\imgui_widgets.cpp">
       <Filter>include\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="include\sqlite\shell.c">
+      <Filter>include\sqlite</Filter>
+    </ClCompile>
+    <ClCompile Include="include\sqlite\sqlite3.c">
+      <Filter>include\sqlite</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\imgui\imconfig.h">
@@ -46,6 +52,12 @@
     <ClInclude Include="include\httplib.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="include\sqlite\sqlite3.h">
+      <Filter>include\sqlite</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sqlite\sqlite3ext.h">
+      <Filter>include\sqlite</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -59,6 +71,9 @@
     </Filter>
     <Filter Include="include\imgui">
       <UniqueIdentifier>{b196df2c-dc1d-4817-9c58-2b32d21cb324}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\sqlite">
+      <UniqueIdentifier>{2e54e9e2-7cf5-4d4a-98da-6174b0b85ee4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

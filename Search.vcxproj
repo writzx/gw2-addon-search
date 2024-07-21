@@ -158,6 +158,8 @@
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="include\sqlite\shell.c" />
+    <ClCompile Include="include\sqlite\sqlite3.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\httplib.h" />
@@ -169,6 +171,8 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\mumble\Mumble.h" />
     <ClInclude Include="include\nexus\Nexus.h" />
+    <ClInclude Include="include\sqlite\sqlite3.h" />
+    <ClInclude Include="include\sqlite\sqlite3ext.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
