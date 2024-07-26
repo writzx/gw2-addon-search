@@ -98,7 +98,7 @@ def main(lang: str) -> int:
             for batch_ids, start, end in batch_item_ids(item_ids, return_indices=True):
                 cursor = conn.cursor()
                 print(f"fetching items indices: {start}-{end} [{end}/{len(item_ids)}] … ", end="")
-                items = session.get(f"{API_BASE_URL}/items?ids={",".join([f'{i}' for i in batch_ids])}&lang={lang}")
+                items = session.get(f"{API_BASE_URL}/items?ids={','.join([f'{i}' for i in batch_ids])}&lang={lang}")
 
                 if items.status_code != 200:
                     print(f"failed to fetch item ids: {batch_ids[0]}-{batch_ids[-1]}")
