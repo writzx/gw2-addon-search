@@ -17,7 +17,7 @@ retries = Retry(
     status_forcelist=[500, 502, 503, 504]
 )
 
-session.mount('http://', HTTPAdapter(max_retries=retries))
+session.mount(API_BASE_URL, HTTPAdapter(max_retries=retries))
 
 
 def batch_item_ids(all_ids, n=BATCH_SIZE, return_indices=False):
