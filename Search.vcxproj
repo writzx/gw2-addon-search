@@ -114,7 +114,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -137,7 +137,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderOutputFile />
     </ClCompile>
@@ -152,16 +152,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="src\APIClient.cpp" />
+    <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Backup.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Column.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Database.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Exception.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Savepoint.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Statement.cpp" />
+    <ClCompile Include="include\SQLiteCpp\Transaction.cpp" />
     <ClCompile Include="include\sqlite\shell.c" />
     <ClCompile Include="include\sqlite\sqlite3.c" />
+    <ClCompile Include="src\ItemStore.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\APIClient.h" />
     <ClInclude Include="include\httplib.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
     <ClInclude Include="include\imgui\imgui.h" />
@@ -171,8 +181,25 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\mumble\Mumble.h" />
     <ClInclude Include="include\nexus\Nexus.h" />
+    <ClInclude Include="include\nlohmann\json.hpp" />
+    <ClInclude Include="include\nlohmann\json_fwd.hpp" />
+    <ClInclude Include="include\SQLiteCpp\Assertion.h" />
+    <ClInclude Include="include\SQLiteCpp\Backup.h" />
+    <ClInclude Include="include\SQLiteCpp\Column.h" />
+    <ClInclude Include="include\SQLiteCpp\Database.h" />
+    <ClInclude Include="include\SQLiteCpp\Exception.h" />
+    <ClInclude Include="include\SQLiteCpp\ExecuteMany.h" />
+    <ClInclude Include="include\SQLiteCpp\Savepoint.h" />
+    <ClInclude Include="include\SQLiteCpp\SQLiteCpp.h" />
+    <ClInclude Include="include\SQLiteCpp\SQLiteCppExport.h" />
+    <ClInclude Include="include\SQLiteCpp\Statement.h" />
+    <ClInclude Include="include\SQLiteCpp\Transaction.h" />
+    <ClInclude Include="include\SQLiteCpp\Utils.h" />
+    <ClInclude Include="include\SQLiteCpp\VariadicBind.h" />
     <ClInclude Include="include\sqlite\sqlite3.h" />
     <ClInclude Include="include\sqlite\sqlite3ext.h" />
+    <ClInclude Include="src\ItemStore.h" />
+    <ClInclude Include="src\sql_commands.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

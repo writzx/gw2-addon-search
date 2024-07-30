@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp">
       <Filter>include\imgui</Filter>
     </ClCompile>
@@ -22,6 +21,36 @@
     </ClCompile>
     <ClCompile Include="include\sqlite\sqlite3.c">
       <Filter>include\sqlite</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Backup.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Column.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Database.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Exception.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Savepoint.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Statement.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="include\SQLiteCpp\Transaction.cpp">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\APIClient.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dllmain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ItemStore.cpp">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -49,14 +78,68 @@
     <ClInclude Include="include\mumble\Mumble.h">
       <Filter>include\mumble</Filter>
     </ClInclude>
-    <ClInclude Include="include\httplib.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="include\sqlite\sqlite3.h">
       <Filter>include\sqlite</Filter>
     </ClInclude>
     <ClInclude Include="include\sqlite\sqlite3ext.h">
       <Filter>include\sqlite</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Assertion.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Backup.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Column.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Database.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Exception.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\ExecuteMany.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\httplib.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Savepoint.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\SQLiteCpp.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\SQLiteCppExport.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Statement.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Transaction.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\Utils.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SQLiteCpp\VariadicBind.h">
+      <Filter>include\SQLiteCpp</Filter>
+    </ClInclude>
+    <ClInclude Include="include\nlohmann\json.hpp">
+      <Filter>include\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="include\nlohmann\json_fwd.hpp">
+      <Filter>include\nlohmann</Filter>
+    </ClInclude>
+    <ClInclude Include="src\APIClient.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ItemStore.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sql_commands.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -74,6 +157,15 @@
     </Filter>
     <Filter Include="include\sqlite">
       <UniqueIdentifier>{2e54e9e2-7cf5-4d4a-98da-6174b0b85ee4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\SQLiteCpp">
+      <UniqueIdentifier>{32d5d0d0-6f24-42d4-994c-054f8427a566}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\nlohmann">
+      <UniqueIdentifier>{d7028805-2aef-462a-b4bd-d407224a0d08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{78d4d2f9-1b71-4c68-a2c6-a36fadde0a72}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

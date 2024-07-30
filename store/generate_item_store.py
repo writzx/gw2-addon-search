@@ -20,7 +20,7 @@ retries = Retry(
 session.mount(API_BASE_URL, HTTPAdapter(max_retries=retries))
 
 
-def batch_item_ids(all_ids, n=BATCH_SIZE, return_indices=False):
+def batch_array(all_ids, n=BATCH_SIZE, return_indices=False):
     for i in range(0, len(all_ids), n):
         if return_indices:
             yield all_ids[i:i + n], i + 1, min(i + n, len(all_ids))
@@ -42,11 +42,11 @@ def batch_item_ids(all_ids, n=BATCH_SIZE, return_indices=False):
 
 """
 
-TABLE_NAME = f"items_{{lang}}"
+ITEMS_TABLE_NAME = f"items_{{lang}}"
 
 CREATE_TABLE_ITEMS = f"""
-drop table if exists {TABLE_NAME};
-create table {TABLE_NAME} (
+drop table if exists {ITEMS_TABLE_NAME};
+create table {ITEMS_TABLE_NAME} (
     id              integer     primary key,
     name            text        not null,
     description     text,
@@ -65,7 +65,7 @@ create table {TABLE_NAME} (
 """
 
 INSERT_TABLE_ITEMS = f"""
-insert into {TABLE_NAME}
+insert into {ITEMS_TABLE_NAME}
 (id, name, description, item_level, vendor_value, rarity, type, subtype, weight, chat_link, icon)
 values (?,?,?,?,?,?,?,?,?,?,?);
 """
@@ -95,8 +95,7 @@ def main(lang: str) -> int:
             print(f"done.")
             print(f"found {len(item_ids)} item ids.")
 
-            for batch_ids, start, end in batch_item_ids(item_ids, return_indices=True):
-                cursor = conn.cursor()
+            for batch_ids, start, end in batch_array(item_ids, return_indices=True):
                 print(f"fetching items indices: {start}-{end} [{end}/{len(item_ids)}] … ", end="")
                 items = session.get(f"{API_BASE_URL}/items?ids={','.join([f'{i}' for i in batch_ids])}&lang={lang}")
 
@@ -121,6 +120,8 @@ def main(lang: str) -> int:
                     item["chat_link"],
                     item["icon"] if "icon" in item else None,
                 ) for item in items.json()]
+
+                cursor = conn.cursor()
 
                 cursor.executemany(INSERT_TABLE_ITEMS.format(lang=lang), item_tups)
 
