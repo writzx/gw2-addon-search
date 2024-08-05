@@ -52,6 +52,12 @@
     <ClCompile Include="src\ItemStore.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\standalone.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="Finder.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\imgui\imconfig.h">
@@ -139,6 +145,15 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\sql_commands.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\helper.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="Finder.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\standalone.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

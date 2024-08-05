@@ -5,23 +5,20 @@
 #include "ItemStore.h"
 #include "sql_commands.h"
 
+#include "helper.h"
+
 using json = nlohmann::json;
 
-static long long current_millis() {
-	auto now = chrono::system_clock::now().time_since_epoch();
-
-	// Convert duration to milliseconds
-	return chrono::duration_cast<chrono::milliseconds>(now).count();
-}
-
 void ItemStore::refresh() {
-	auto timestamp = current_millis();
+	auto timestamp = helper::current_millis();
 
 	if (this->last_refresh >= 0 && timestamp - this->last_refresh < this->refresh_interval) {
 		return;
 	}
 
-	SQLite::Database stored_items("stored_items.db", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+	auto stored_db_loc = std::format("{0}\\{1}", this->path, "stored_items.db");
+
+	SQLite::Database stored_items(stored_db_loc, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
 
 	stored_items.exec(CREATE_TABLE_ITEM_STORE);
 
@@ -49,12 +46,12 @@ void ItemStore::refresh() {
 					insert_query.bind(5);
 				}
 				if (stored_item.contains("category")) {
-					insert_query.bind(6, format("{}", stored_item["category"].template get<int>()));
+					insert_query.bind(6, std::format("{}", stored_item["category"].template get<int>()));
 				} else {
 					insert_query.bind(6);
 				}
 				if (stored_item.contains("binding")) {
-					insert_query.bind(7, stored_item["binding"].template get<string>());
+					insert_query.bind(7, stored_item["binding"].template get<std::string>());
 				} else {
 					insert_query.bind(7);
 				}
@@ -67,6 +64,26 @@ void ItemStore::refresh() {
 
 		transaction.commit();
 	}
+}
 
-	stored_items.~Database();
+std::vector<std::string> ItemStore::search(std::string keyword) const {
+	SQLite::Database stored_items(this->path + "\\stored_items.db", SQLite::OPEN_READONLY);
+
+	std::string items_db_path = this->path + "\\items_en.db";
+
+	std::string attach_sql = vformat(ATTACH_DB, make_format_args(items_db_path));
+
+	stored_items.exec(attach_sql);
+
+	std::string search_sql = vformat(QUERY_ITEM_STORE, make_format_args(keyword));
+
+	SQLite::Statement query(stored_items, search_sql);
+
+	std::vector<std::string> results;
+
+	while (query.executeStep()) {
+		results.push_back(query.getColumn(ITEM_NAME_COLUMN.c_str()));
+	}
+
+	return results;
 }

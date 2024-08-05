@@ -1,21 +1,27 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <string>
-
-#include "ItemStore.h"
+#include <filesystem>
 
 #include "nexus/Nexus.h"
 #include "imgui/imgui.h"
+
+#include "ItemStore.h"
+#include "standalone.h"
+#include "helper.h"
 
 AddonDefinition AddonDef = {};
 HMODULE ADDON_MODULE = nullptr;
 AddonAPI* NEXUS = nullptr;
 
-static std::string textToShow = "NO DATA";
-static bool isBusy = false;
+std::string statusText = "NO DATA";
+std::string searchResults = "";
+bool isBusy = false;
 
 ItemStore* store = nullptr;
 APIClient* client = nullptr;
+
+char InputBuf[256];
 
 BOOL APIENTRY DllMain(
 	HMODULE hModule,
@@ -34,6 +40,18 @@ BOOL APIENTRY DllMain(
 	return TRUE;
 }
 
+static void search(std::string query) {
+	NEXUS->Log(ELogLevel_INFO, "SEARCH", query.c_str());
+
+	std::vector<std::string> results = store->search(query);
+
+	searchResults = "";
+
+	for (auto& result : results) {
+		searchResults += result + "\n";
+	}
+}
+
 static void AddonRender() {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -47,8 +65,10 @@ static void AddonRender() {
 
 					try {
 						store->refresh();
+
+						statusText = std::format("Last refresh: {}", helper::current_millis());
 					} catch (...) {
-						textToShow = "EXCEPTION OCCURRED";
+						statusText = "EXCEPTION OCCURRED";
 					}
 					isBusy = false;
 				}
@@ -56,7 +76,24 @@ static void AddonRender() {
 			t1.detach();
 		}
 
-		ImGui::Text(textToShow.c_str());
+		ImGui::Text(statusText.c_str());
+
+		if (ImGui::InputText("Search", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+			char* s = InputBuf;
+			helper::str_trim(s);
+
+			search(s);
+		}
+		ImGui::SetItemDefaultFocus();
+
+		if (ImGui::Button("Search") && !isBusy) {
+			char* s = InputBuf;
+			helper::str_trim(s);
+
+			search(s);
+		}
+
+		ImGui::Text(searchResults.c_str());
 	}
 	ImGui::End();
 }
@@ -72,8 +109,16 @@ static void AddonLoad(AddonAPI* api) {
 	// register addon renderer
 	NEXUS->RegisterRender(ERenderType_Render, AddonRender);
 
+	auto addon_dir = NEXUS->GetAddonDirectory("Search");
+
+	if (!std::filesystem::is_directory(addon_dir)) {
+		std::filesystem::create_directory(addon_dir);
+	}
+
 	client = new APIClient();
-	store = new ItemStore(*client, "");
+	store = new ItemStore(*client, addon_dir);
+
+	memset(InputBuf, 0, sizeof(InputBuf));
 }
 
 static void AddonUnload() {

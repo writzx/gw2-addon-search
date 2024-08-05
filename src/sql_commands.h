@@ -1,12 +1,10 @@
 #pragma once
 #include <iostream>
-#include <format>
 
-using namespace std;
+const std::string ITEM_STORE_TABLE_NAME = "item_store";
+const std::string ITEM_NAME_COLUMN = "item_name";
 
-const string ITEM_STORE_TABLE_NAME = "item_store";
-
-const string CREATE_TABLE_ITEM_STORE = format(
+const std::string CREATE_TABLE_ITEM_STORE = std::format(
 	"drop table if exists {0};\n"
 	"create table {0} (\n"
 	"	id              integer     primary key,\n"
@@ -25,7 +23,7 @@ const string CREATE_TABLE_ITEM_STORE = format(
 );
 
 
-const string INSERT_TABLE_ITEM_STORE = format(
+const std::string INSERT_TABLE_ITEM_STORE = std::format(
 	"insert into {0}\n"
 	"	(id, item_id, count, charges, skin, category, binding, endpoint)\n"
 	"values (? , ? , ? , ? , ? , ? , ? , ?);",
@@ -33,15 +31,16 @@ const string INSERT_TABLE_ITEM_STORE = format(
 );
 
 
-const string ATTACH_DB =
-"attach '{0}' as items_db;";
+const std::string ATTACH_DB = "attach '{0}' as items_db;";
 // attach 'item_store.db' as item_store_db;
 
-const string QUERY_ITEM_STORE = format(
-	"select * from {0} sdb\n"
+const std::string QUERY_ITEM_STORE = std::format(
+	"select idb.name as {0} from {1} sdb\n"
 	"	inner join\n"
 	"items_db.items_en idb\n"
 	"	on idb.id = sdb.item_id\n"
-	"where idb.name like ",
-	ITEM_STORE_TABLE_NAME
-) + "'%{0}%';";
+	"where idb.name like {2}",
+	ITEM_NAME_COLUMN,
+	ITEM_STORE_TABLE_NAME,
+	"'%{0}%';"
+);

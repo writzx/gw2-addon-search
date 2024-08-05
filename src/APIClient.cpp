@@ -1,6 +1,6 @@
 #include "APIClient.h"
 
-string APIClient::fetch(string endpoint_name) {
+std::string APIClient::fetch(std::string endpoint_name) {
 	auto endpoint_element = ENDPOINTS.find(endpoint_name);
 
 	if (endpoint_element != ENDPOINTS.end()) {
@@ -12,7 +12,7 @@ string APIClient::fetch(string endpoint_name) {
 			return res->body;
 		} else {
 			auto err = res.error();
-			string error_string = httplib::to_string(err);
+			std::string error_string = httplib::to_string(err);
 
 			throw error_string;
 		}

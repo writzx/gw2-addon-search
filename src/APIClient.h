@@ -3,11 +3,9 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "httplib.h"
 
-using namespace std;
-
-const string API_HOST_BASE = "https://api.guildwars2.com";
-const string API_VERSION = "v2";
-const map<string, string> ENDPOINTS = {
+const std::string API_HOST_BASE = "https://api.guildwars2.com";
+const std::string API_VERSION = "v2";
+const std::map<std::string, std::string> ENDPOINTS = {
 	{
 		"Bank",
 		"/account/bank"
@@ -25,7 +23,7 @@ const map<string, string> ENDPOINTS = {
 class APIClient {
 private:
 	httplib::Client client;
-	string apiKey;
+	std::string apiKey;
 public:
 	APIClient():
 		client(API_HOST_BASE),
@@ -33,6 +31,6 @@ public:
 		this->client.set_bearer_token_auth(this->apiKey);
 	}
 
-	string fetch(string endpoint_name);
+	std::string fetch(std::string endpoint_name);
 };
 
