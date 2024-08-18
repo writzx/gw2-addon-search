@@ -55,7 +55,7 @@
     <ClCompile Include="src\standalone.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="Finder.cpp">
+    <ClCompile Include="src\Finder.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -150,10 +150,10 @@
     <ClInclude Include="src\helper.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="Finder.h">
+    <ClInclude Include="src\standalone.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\standalone.h">
+    <ClInclude Include="src\Finder.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

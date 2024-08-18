@@ -91,7 +91,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Finder.cpp" />
     <ClCompile Include="src\APIClient.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
@@ -108,11 +107,11 @@
     <ClCompile Include="include\SQLiteCpp\Transaction.cpp" />
     <ClCompile Include="include\sqlite\shell.c" />
     <ClCompile Include="include\sqlite\sqlite3.c" />
+    <ClCompile Include="src\Finder.cpp" />
     <ClCompile Include="src\ItemStore.cpp" />
     <ClCompile Include="src\standalone.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Finder.h" />
     <ClInclude Include="src\APIClient.h" />
     <ClInclude Include="include\httplib.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
@@ -140,6 +139,7 @@
     <ClInclude Include="include\SQLiteCpp\VariadicBind.h" />
     <ClInclude Include="include\sqlite\sqlite3.h" />
     <ClInclude Include="include\sqlite\sqlite3ext.h" />
+    <ClInclude Include="src\Finder.h" />
     <ClInclude Include="src\helper.h" />
     <ClInclude Include="src\ItemStore.h" />
     <ClInclude Include="src\sql_commands.h" />
