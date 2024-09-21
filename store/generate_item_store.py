@@ -42,7 +42,8 @@ def batch_array(all_ids, n=BATCH_SIZE, return_indices=False):
 
 """
 
-ITEMS_TABLE_NAME = f"items_{{lang}}"
+# ITEMS_TABLE_NAME = f"items_{{lang}}"
+ITEMS_TABLE_NAME = f"items"
 
 CREATE_TABLE_ITEMS = f"""
 drop table if exists {ITEMS_TABLE_NAME};

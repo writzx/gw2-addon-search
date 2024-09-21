@@ -1,5 +1,10 @@
 // an example imgui standalone app for testing the addon
 
+#define _CRT_SECURE_NO_WARNINGS
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Shlwapi.h>
 
@@ -12,7 +17,6 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
-#include "standalone.h"
 
 static ID3D11Device* g_pd3dDevice = nullptr;
 static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
@@ -28,12 +32,91 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+static std::string get_dir() {
+	wchar_t path[FILENAME_MAX] = { 0 };
+	GetModuleFileNameW(nullptr, path, FILENAME_MAX);
+
+	auto path_str = std::format("{}", std::filesystem::path(path).parent_path().string());
+
+	return path_str;
+}
+
+typedef void (*ADDON_LOAD) (void* ctxt, void*, void*, void*, const char*);
+typedef void (*ADDON_RENDER) ();
+
+void LoadTextureFromResource(int resId, HMODULE hInstance, void*& texture, int& out_width, int& out_height) {
+	HRSRC resource = FindResource(hInstance, MAKEINTRESOURCE(resId), L"PNG");
+	HGLOBAL loadedResource = LoadResource(hInstance, resource);
+	void* pData = LockResource(loadedResource);
+	DWORD size = SizeofResource(hInstance, resource);
+
+	int width, height, channels;
+	unsigned char* imageData = stbi_load_from_memory(
+		reinterpret_cast<const stbi_uc*>(pData), size, &width, &height, &channels, STBI_rgb_alpha);
+
+	if (imageData == nullptr) {
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.MipLevels = 1;
+	textureDesc.ArraySize = 1;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA initData = {};
+	initData.pSysMem = imageData;
+	initData.SysMemPitch = width * 4;
+
+	ID3D11Texture2D* pTexture = nullptr;
+	HRESULT hr = g_pd3dDevice->CreateTexture2D(&textureDesc, &initData, &pTexture);
+	if (FAILED(hr)) {
+		stbi_image_free(imageData);
+		return;
+	}
+
+	ID3D11ShaderResourceView* pSRV = nullptr;
+	hr = g_pd3dDevice->CreateShaderResourceView(pTexture, nullptr, &pSRV);
+	if (FAILED(hr)) {
+		pTexture->Release();
+		stbi_image_free(imageData);
+		return;
+	}
+
+	stbi_image_free(imageData);
+	pTexture->Release();
+
+	texture = pSRV;
+	out_width = width;
+	out_height = height;
+}
+
 int WinMain(
 	HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR     lpCmdLine,
 	int       nShowCmd
 ) {
+	HMODULE searchDll = LoadLibrary(L"Search.dll");
+
+	if (!searchDll) {
+		std::cerr << "failed to load the search dll." << std::endl;
+		return -1;
+	}
+
+	ADDON_LOAD AddonLoadStandalone = (ADDON_LOAD) GetProcAddress(searchDll, "AddonLoadStandalone");
+	ADDON_RENDER AddonRenderStandalone = (ADDON_RENDER) GetProcAddress(searchDll, "AddonRenderStandalone");
+
+	if (!AddonLoadStandalone || !AddonRenderStandalone) {
+		std::cerr << "failed to load addon functions." << std::endl;
+		FreeLibrary(searchDll);
+		return -1;
+	}
+
 	// Create application window
 	//ImGui_ImplWin32_EnableDpiAwareness();
 	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"Mock Standalone", nullptr };
@@ -68,12 +151,7 @@ int WinMain(
 	// state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	wchar_t path[FILENAME_MAX] = { 0 };
-	GetModuleFileNameW(nullptr, path, FILENAME_MAX);
-
-	auto path_str = std::format("{}", std::filesystem::path(path).parent_path().string());
-
-	AddonLoadStandalone(ctxt, ImGui::MemAlloc, ImGui::MemFree, path_str.c_str());
+	AddonLoadStandalone(ctxt, ImGui::MemAlloc, ImGui::MemFree, ::LoadTextureFromResource, get_dir().c_str());
 
 	// Main loop
 	bool done = false;
@@ -132,6 +210,8 @@ int WinMain(
 	CleanupDeviceD3D();
 	::DestroyWindow(hwnd);
 	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+
+	FreeLibrary(searchDll);
 
 	return 0;
 }

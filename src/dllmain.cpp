@@ -1,27 +1,25 @@
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
 #include <string>
 #include <filesystem>
+
+#include "global.h"
+#include "resource.h"
 
 #include "nexus/Nexus.h"
 #include "imgui/imgui.h"
 
-#include "ItemStore.h"
-#include "standalone.h"
-#include "helper.h"
+#include "Finder.h"
 
-AddonDefinition AddonDef = {};
 HMODULE ADDON_MODULE = nullptr;
-AddonAPI* NEXUS = nullptr;
 
-std::string statusText = "NO DATA";
-std::string searchResults = "";
-bool isBusy = false;
+namespace {
+	AddonDefinition AddonDef = {};
+	AddonAPI* NEXUS = nullptr;
+	Finder* finder = nullptr;
 
-ItemStore* store = nullptr;
-APIClient* client = nullptr;
+	Texture* freg_tex = nullptr;
 
-char InputBuf[256];
+	std::map<std::string, ItemTexture*> loadingTex;
+}
 
 BOOL APIENTRY DllMain(
 	HMODULE hModule,
@@ -40,62 +38,54 @@ BOOL APIENTRY DllMain(
 	return TRUE;
 }
 
-static void search(std::string query) {
-	NEXUS->Log(ELogLevel_INFO, "SEARCH", query.c_str());
+static void AddonRender() {
+	finder->Render();
+}
 
-	std::vector<std::string> results = store->search(query);
+static void tex_cb(const char* aId, Texture* aTex) {
+	if (loadingTex.contains(aId)) {
+		auto& savedtex = loadingTex.at(aId);
 
-	searchResults = "";
-
-	for (auto& result : results) {
-		searchResults += result + "\n";
+		savedtex->shader = aTex->Resource;
+		savedtex->height = aTex->Width;
+		savedtex->height = aTex->Height;
 	}
 }
 
-static void AddonRender() {
-	ImGuiIO& io = ImGui::GetIO();
+static void load_texture(const char* identifier, const char* url, ItemTexture*& out_texture) {
+	std::string path = std::string(url).substr(RENDER_HOST_BASE.length());
 
-	if (ImGui::Begin("Search")) {
-		auto btn = ImGui::Button("Refresh");
+	auto instaget_tex = NEXUS->GetTextureOrCreateFromURL(
+		identifier,
+		RENDER_HOST_BASE.c_str(),
+		path.c_str()
+	);
 
-		if (btn && !isBusy) {
-			auto t1 = std::thread(
-				[]() {
-					isBusy = true;
+	if (instaget_tex != nullptr) {
+		out_texture->shader = instaget_tex->Resource;
+		out_texture->width = instaget_tex->Width;
+		out_texture->height = instaget_tex->Height;
+	} else {
+		out_texture->shader = freg_tex->Resource;
+		out_texture->width = freg_tex->Width;
+		out_texture->height = freg_tex->Height;
 
-					try {
-						store->refresh();
+		loadingTex.emplace(identifier, out_texture);
 
-						statusText = std::format("Last refresh: {}", helper::current_millis());
-					} catch (...) {
-						statusText = "EXCEPTION OCCURRED";
-					}
-					isBusy = false;
-				}
-			);
-			t1.detach();
-		}
-
-		ImGui::Text(statusText.c_str());
-
-		if (ImGui::InputText("Search", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
-			char* s = InputBuf;
-			helper::str_trim(s);
-
-			search(s);
-		}
-		ImGui::SetItemDefaultFocus();
-
-		if (ImGui::Button("Search") && !isBusy) {
-			char* s = InputBuf;
-			helper::str_trim(s);
-
-			search(s);
-		}
-
-		ImGui::Text(searchResults.c_str());
+		NEXUS->LoadTextureFromURL(
+			identifier,
+			RENDER_HOST_BASE.c_str(),
+			path.c_str(),
+			tex_cb
+		);
 	}
-	ImGui::End();
+}
+
+static void FREG_CALLBACK(const char* aIdentifier, Texture* aTexture) {
+	freg_tex = new Texture();
+	freg_tex->Resource = aTexture->Resource;
+	freg_tex->Width = aTexture->Width;
+	freg_tex->Height = aTexture->Height;
 }
 
 static void AddonLoad(AddonAPI* api) {
@@ -115,10 +105,17 @@ static void AddonLoad(AddonAPI* api) {
 		std::filesystem::create_directory(addon_dir);
 	}
 
-	client = new APIClient();
-	store = new ItemStore(*client, addon_dir);
+	finder = new Finder("AriKOnFire.2581", addon_dir);
 
-	memset(InputBuf, 0, sizeof(InputBuf));
+	finder->InitImGui(NEXUS->ImguiContext, NEXUS->ImguiMalloc, NEXUS->ImguiFree);
+	finder->SetTextureLoader(load_texture);
+
+	NEXUS->LoadTextureFromResource(
+		"freg",
+		FREG_PNG,
+		ADDON_MODULE,
+		FREG_CALLBACK
+	);
 }
 
 static void AddonUnload() {

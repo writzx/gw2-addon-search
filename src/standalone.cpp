@@ -2,85 +2,25 @@
 #include <format>
 
 #include "standalone.h"
-#include "ItemStore.h"
 
-#include "helper.h"
-
-std::string statusText_standalone = "NO DATA";
-std::string searchResults_standalone = "";
-bool isBusy_standalone = false;
-
-ItemStore* store_standalone = nullptr;
-APIClient* client_standalone = nullptr;
-
-char InputBuf_standalone[256];
-
-void AddonLoadStandalone(ImGuiContext* ctxt, void* imgui_malloc, void* imgui_free, const char* config_dir) {
-	ImGui::SetCurrentContext(ctxt);
-	ImGui::SetAllocatorFunctions((void* (*)(size_t, void*))imgui_malloc, (void(*)(void*, void*))imgui_free);
-
-	if (!std::filesystem::is_directory(config_dir)) {
-		std::filesystem::create_directory(config_dir);
+static void LoadTexture(const char* identifier, const char* url, ItemTexture*& out_texture) {
+	if (!tex_loader) {
+		throw "texture loader is null";
 	}
 
-	client_standalone = new APIClient();
-	store_standalone = new ItemStore(*client_standalone, config_dir);
-
-	memset(InputBuf_standalone, 0, sizeof(InputBuf_standalone));
+	tex_loader(FREG_PNG, ADDON_MODULE, out_texture->shader, out_texture->width, out_texture->height);
 }
 
-static void search(std::string query) {
-	std::vector<std::string> results = store_standalone->search(query);
+void AddonLoadStandalone(void* ctxt, void* imgui_malloc, void* imgui_free, void* texture_loader, const char* config_dir) {
+	finder = new Finder("AriKOnFire.2581", config_dir);
 
-	searchResults_standalone = "";
+	finder->InitImGui(ctxt, imgui_malloc, imgui_free);
 
-	for (auto& result : results) {
-		searchResults_standalone += result + "\n";
-	}
+	tex_loader = (LOAD_TEXTURE_RAW) texture_loader;
+
+	finder->SetTextureLoader(LoadTexture);
 }
 
 void AddonRenderStandalone() {
-	ImGuiIO& io = ImGui::GetIO();
-
-	if (ImGui::Begin("Search")) {
-		auto btn = ImGui::Button("Refresh");
-
-		if (btn && !isBusy_standalone) {
-			auto t1 = std::thread(
-				[]() {
-					isBusy_standalone = true;
-
-					//try {
-						store_standalone->refresh();
-
-						statusText_standalone = std::format("Last refresh: {}", helper::current_millis());
-					//} catch (...) {
-					//	statusText_standalone = "EXCEPTION OCCURRED";
-					//}
-					isBusy_standalone = false;
-				}
-			);
-			t1.detach();
-		}
-
-		ImGui::Text(statusText_standalone.c_str());
-
-		if (ImGui::InputText("Search", InputBuf_standalone, IM_ARRAYSIZE(InputBuf_standalone), ImGuiInputTextFlags_EnterReturnsTrue)) {
-			char* s = InputBuf_standalone;
-			helper::str_trim(s);
-
-			search(s);
-		}
-		ImGui::SetItemDefaultFocus();
-
-		if (ImGui::Button("Search") && !isBusy_standalone) {
-			char* s = InputBuf_standalone;
-			helper::str_trim(s);
-
-			search(s);
-		}
-
-		ImGui::Text(searchResults_standalone.c_str());
-	}
-	ImGui::End();
+	finder->Render();
 }

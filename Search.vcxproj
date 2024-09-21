@@ -53,7 +53,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite;res</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -92,6 +92,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\APIClient.cpp" />
+    <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
@@ -112,6 +113,9 @@
     <ClCompile Include="src\standalone.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\thread_pool\thread_pool.h" />
+    <ClInclude Include="include\thread_pool\thread_safe_queue.h" />
+    <ClInclude Include="res\resource.h" />
     <ClInclude Include="src\APIClient.h" />
     <ClInclude Include="include\httplib.h" />
     <ClInclude Include="include\imgui\imconfig.h" />
@@ -139,11 +143,22 @@
     <ClInclude Include="include\SQLiteCpp\VariadicBind.h" />
     <ClInclude Include="include\sqlite\sqlite3.h" />
     <ClInclude Include="include\sqlite\sqlite3ext.h" />
+    <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\const.h" />
     <ClInclude Include="src\Finder.h" />
+    <ClInclude Include="src\global.h" />
     <ClInclude Include="src\helper.h" />
+    <ClInclude Include="src\imgui_helper.h" />
+    <ClInclude Include="src\Item.h" />
     <ClInclude Include="src\ItemStore.h" />
     <ClInclude Include="src\sql_commands.h" />
     <ClInclude Include="src\standalone.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="res\resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\freg.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
