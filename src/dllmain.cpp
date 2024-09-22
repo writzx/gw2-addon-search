@@ -17,8 +17,6 @@ namespace {
 	Finder* finder = nullptr;
 
 	Texture* freg_tex = nullptr;
-
-	std::map<std::string, ItemTexture*> loadingTex;
 }
 
 BOOL APIENTRY DllMain(
@@ -39,20 +37,14 @@ BOOL APIENTRY DllMain(
 }
 
 static void AddonRender() {
+	if (finder == nullptr) {
+		return;
+	}
+
 	finder->Render();
 }
 
-static void tex_cb(const char* aId, Texture* aTex) {
-	if (loadingTex.contains(aId)) {
-		auto& savedtex = loadingTex.at(aId);
-
-		savedtex->shader = aTex->Resource;
-		savedtex->height = aTex->Width;
-		savedtex->height = aTex->Height;
-	}
-}
-
-static void load_texture(const char* identifier, const char* url, ItemTexture*& out_texture) {
+static void* load_texture(const char* identifier, const char* url) {
 	std::string path = std::string(url).substr(RENDER_HOST_BASE.length());
 
 	auto instaget_tex = NEXUS->GetTextureOrCreateFromURL(
@@ -62,30 +54,69 @@ static void load_texture(const char* identifier, const char* url, ItemTexture*& 
 	);
 
 	if (instaget_tex != nullptr) {
-		out_texture->shader = instaget_tex->Resource;
-		out_texture->width = instaget_tex->Width;
-		out_texture->height = instaget_tex->Height;
+		return instaget_tex->Resource;
 	} else {
-		out_texture->shader = freg_tex->Resource;
-		out_texture->width = freg_tex->Width;
-		out_texture->height = freg_tex->Height;
-
-		loadingTex.emplace(identifier, out_texture);
-
 		NEXUS->LoadTextureFromURL(
 			identifier,
 			RENDER_HOST_BASE.c_str(),
 			path.c_str(),
-			tex_cb
+			[](const char*, Texture*) {}
 		);
+
+		return freg_tex->Resource;
 	}
 }
 
-static void FREG_CALLBACK(const char* aIdentifier, Texture* aTexture) {
+static void* load_texture(const char* identifier, int resId) {
+	auto instaget_tex = NEXUS->GetTextureOrCreateFromResource(
+		identifier,
+		resId,
+		ADDON_MODULE
+	);
+
+	if (instaget_tex != nullptr) {
+		return instaget_tex->Resource;
+	} else {
+		NEXUS->LoadTextureFromResource(
+			identifier,
+			resId,
+			ADDON_MODULE,
+			[](const char*, Texture*) {}
+		);
+
+		return freg_tex->Resource;
+	}
+}
+
+static void LoadFregCallback(const char* aIdentifier, Texture* aTexture) {
 	freg_tex = new Texture();
 	freg_tex->Resource = aTexture->Resource;
 	freg_tex->Width = aTexture->Width;
 	freg_tex->Height = aTexture->Height;
+}
+
+static void HandleAccountName(void* account_name) {
+	if (!account_name) {
+		return;
+	}
+
+	std::string raw_id = static_cast<const char*>(account_name);
+	auto addon_dir = NEXUS->GetAddonDirectory("Search");
+
+	auto id = raw_id.substr(raw_id.find_first_not_of(":"), raw_id.find_last_not_of(":"));
+
+	std::string store_path = std::format("{0}\\{1}", addon_dir, id);
+
+	if (!std::filesystem::exists(store_path) || !std::filesystem::is_directory(store_path)) {
+		std::filesystem::create_directories(store_path);
+	}
+
+	finder = new Finder(id, addon_dir);
+
+	finder->InitImGui(NEXUS->ImguiContext, NEXUS->ImguiMalloc, NEXUS->ImguiFree);
+
+	finder->SetRemoteTextureLoader(load_texture);
+	finder->SetResourceTextureLoader(load_texture);
 }
 
 static void AddonLoad(AddonAPI* api) {
@@ -99,22 +130,14 @@ static void AddonLoad(AddonAPI* api) {
 	// register addon renderer
 	NEXUS->RegisterRender(ERenderType_Render, AddonRender);
 
-	auto addon_dir = NEXUS->GetAddonDirectory("Search");
-
-	if (!std::filesystem::is_directory(addon_dir)) {
-		std::filesystem::create_directory(addon_dir);
-	}
-
-	finder = new Finder("AriKOnFire.2581", addon_dir);
-
-	finder->InitImGui(NEXUS->ImguiContext, NEXUS->ImguiMalloc, NEXUS->ImguiFree);
-	finder->SetTextureLoader(load_texture);
+	NEXUS->SubscribeEvent("EV_ACCOUNT_NAME", HandleAccountName);
+	NEXUS->RaiseEvent("EV_REQUEST_ACCOUNT_NAME", NULL);
 
 	NEXUS->LoadTextureFromResource(
 		"freg",
 		FREG_PNG,
 		ADDON_MODULE,
-		FREG_CALLBACK
+		LoadFregCallback
 	);
 }
 

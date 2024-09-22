@@ -3,11 +3,22 @@
 #include <thread>
 
 #include "imgui_helper.h"
+#include <resource.h>
 
-void Finder::LoadTexture(const char* identifier, const char* url, ItemTexture*& out_texture) const {
-	if (this->load_texture != nullptr) {
-		this->load_texture(identifier, url, out_texture);
+void* Finder::LoadRemoteTexture(const char* identifier, const char* url) const {
+	if (this->load_remote_texture != nullptr) {
+		return this->load_remote_texture(identifier, url);
 	}
+
+	return nullptr;
+}
+
+void* Finder::LoadResourceTexture(const char* identifier, int resourceId) const {
+	if (this->load_resource_texture != nullptr) {
+		return this->load_resource_texture(identifier, resourceId);
+	}
+
+	return nullptr;
 }
 
 void Finder::InitImGui(void* ctxt, void* imgui_malloc, void* imgui_free) {
@@ -49,6 +60,8 @@ void Finder::tick() noexcept {
 }
 
 void Finder::Render() {
+	ImVec2 savedCursor;
+
 	ImGuiIO& io = ImGui::GetIO();
 
 	if (this->store != nullptr) {
@@ -63,11 +76,19 @@ void Finder::Render() {
 	if (ImGui::Begin("Finder")) {
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 
+		if (this->store != nullptr && this->client != nullptr && this->store->refreshing) {
+			ImGuiHelper::BeginDisable();
+		}
+
 		auto apiButton = ImGui::Button("API");
 
 		if (apiButton) {
 			this->state->api_window = true;
 			ImGui::OpenPopup("API Key");
+		}
+
+		if (this->store != nullptr && this->client != nullptr && this->store->refreshing) {
+			ImGuiHelper::EndDisable();
 		}
 
 		ImGui::SameLine();
@@ -107,20 +128,14 @@ void Finder::Render() {
 				ImGuiHelper::BeginDisable();
 			}
 
-			auto doSearch = false;
+			auto doSearch = ImGui::InputText("##search_input", this->state->query, IM_ARRAYSIZE(this->state->query), ImGuiInputTextFlags_EnterReturnsTrue);
 
-			if (ImGui::InputText("##search_input", this->state->query, IM_ARRAYSIZE(this->state->query), ImGuiInputTextFlags_EnterReturnsTrue)) {
-				doSearch = true;
-			}
 			ImGui::SameLine();
-			auto searchBtn = ImGui::Button("Search");
+
+			doSearch = ImGui::Button("Search") || doSearch;
 
 			if (!this->state->can_search) {
 				ImGuiHelper::EndDisable();
-			}
-
-			if (searchBtn) {
-				doSearch = true;
 			}
 
 			if (doSearch) {
@@ -131,46 +146,56 @@ void Finder::Render() {
 				this->store->search(this->state->query, items);
 
 				for (auto& item : items) {
-					if (!this->state->items.contains(item.endpoint)) {
-						std::vector<FinderItem*> ep_items;
-						this->state->items[item.endpoint] = ep_items;
+					if (!this->state->items.contains(item.endpoint_path)) {
+						std::vector<Item> ep_items;
+						this->state->items[item.endpoint_path] = ep_items;
 					}
 
-					FinderItem* newItem = new FinderItem();
-
-					newItem->item = &item;
-
-					newItem->thumb = new ItemTexture();
-
-					this->LoadTexture(std::format("ITEM_TEX_{}", item.id).c_str(), item.icon.c_str(), newItem->thumb);
-
-					this->state->items[item.endpoint].push_back(newItem);
+					this->state->items[item.endpoint_path].push_back(item);
 				}
 			}
 
 			for (const auto& [ep, results] : this->state->items) {
-				if (ImGui::CollapsingHeader(std::format("{}", ep).c_str()), ImGuiTreeNodeFlags_DefaultOpen) {
+				if (results.size() <= 0) {
+					continue;
+				}
+
+				if (ImGui::CollapsingHeader(std::format("{}", results[0].endpoint).c_str()), ImGuiTreeNodeFlags_DefaultOpen) {
 					if (ImGui::BeginTable(std::format("Table: {}", ep).c_str(), numGridCols)) {
 						for (int col = 0; col < numGridCols; col++) {
 							ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, GRID_ITEM_SIZE);
 						}
 
 						for (auto& result : results) {
-							this->LoadTexture(std::format("ITEM_TEX_{}", result->item->id).c_str(), result->item->icon.c_str(), result->thumb);
+							void* texture = this->LoadRemoteTexture(std::format("ITEM_TEX_{}", result.id).c_str(), result.icon.c_str());
 
 							ImGui::TableNextColumn();
-							ImGui::Image(result->thumb->shader, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
+							ImGui::Image(texture, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
 
 							auto minPoint = ImGui::GetItemRectMin();
 							auto maxPoint = ImGui::GetItemRectMax();
 
-							std::string rarity = result->item->rarity;
+							std::string rarity = result.rarity;
 
 							bool hovered = ImGui::IsItemHovered();
 							auto& rarity_color = BORDER_COLORS.at(rarity);
 							auto& rarity_color_hover = BORDER_COLORS_HOVER.at(rarity);
 
 							drawList->AddRect(minPoint, maxPoint, ImGui::ColorConvertFloat4ToU32(hovered ? rarity_color_hover : rarity_color), 0.0f, 0, BORDER_WIDTH);
+
+							std::string count = std::format("{}", result.count > 1 ? result.count : result.charges > 1 ? result.charges : 0);
+
+							if (count != "0") {
+								savedCursor = ImGui::GetCursorPos();
+
+								auto textSize = ImGui::CalcTextSize(count.c_str());
+
+								ImGui::SetCursorScreenPos(ImVec2(maxPoint.x - textSize.x - 3.0f, maxPoint.y - textSize.y - 2.0f));
+
+								ImGui::Text(count.c_str());
+
+								ImGui::SetCursorPos(savedCursor);
+							}
 
 							if (hovered) {
 								ImGui::SetNextWindowSizeConstraints(ImVec2(FLT_MIN, FLT_MIN), ImVec2(300.0f, FLT_MAX));
@@ -179,24 +204,103 @@ void Finder::Render() {
 
 								ImDrawList* tooltipDrawList = ImGui::GetWindowDrawList();
 
-								ImGui::Image(result->thumb->shader, ImVec2(TOOLTIP_ICON_SIZE, TOOLTIP_ICON_SIZE));
+								ImGui::Image(texture, ImVec2(TOOLTIP_ICON_SIZE, TOOLTIP_ICON_SIZE));
 
 								minPoint = ImGui::GetItemRectMin();
 								maxPoint = ImGui::GetItemRectMax();
 
 								tooltipDrawList->AddRect(minPoint, maxPoint, IM_COL32(255, 255, 255, 255), 0.0f, 0, BORDER_WIDTH);
-
 								ImGui::SameLine();
-								ImGui::SetCursorPosY(16.0f);
-								ImGui::TextColored(rarity_color, result->item->display_name().c_str());
 
-								ImGuiHelper::TextWrapped(result->item->clean_description(), 300.0f);
+								savedCursor = ImGui::GetCursorPos();
+
+								auto titleSize = ImGui::CalcTextSize(result.display_name().c_str());
+
+								ImGui::SetCursorPosY(savedCursor.y + (maxPoint.y - minPoint.y - titleSize.y) / 2);
+
+								ImGui::TextColored(rarity_color, result.display_name().c_str());
+
+								ImGuiHelper::TextWrapped(result.clean_description(), 300.0f);
 
 								ImGui::Dummy(ImVec2(0.0f, 8.0f));
 
-								ImGuiHelper::Text(result->item->display_type());
-								ImGuiHelper::Text(result->item->required_level());
-								ImGuiHelper::Text(result->item->display_binding());
+								ImGuiHelper::Text(result.display_type());
+								ImGuiHelper::Text(result.required_level());
+								ImGuiHelper::Text(result.display_binding());
+
+								if (result.vendor_value > 0) {
+									ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
+
+									float textHeight = ImGui::CalcTextSize("m").y;
+
+									int copper = result.vendor_value * result.count;
+									int gold = copper / 10000;
+
+									copper %= 10000;
+									int silver = copper / 100;
+
+									copper %= 100;
+
+									savedCursor = ImGui::GetCursorPos();
+
+									if (gold > 0) {
+										ImGui::TextColored(COLOR_CURRENCY_GOLD, std::format("{}", gold).c_str());
+										ImGui::SameLine();
+
+										void* gold_texture = this->LoadResourceTexture("gold", GOLD_PNG);
+
+										ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+										ImGui::Image(gold_texture, ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+										ImGui::SameLine();
+										ImGui::SetCursorPosY(savedCursor.y);
+
+										ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+										ImGui::Dummy(ImVec2(1.0f, 0.f));
+										ImGui::PopStyleVar();
+
+										ImGui::SameLine();
+									}
+
+									if (silver > 0 || gold > 0) {
+										ImGui::TextColored(COLOR_CURRENCY_SILVER, std::format("{}", silver).c_str());
+										ImGui::SameLine();
+
+										void* silver_texture = this->LoadResourceTexture("silver", SILVER_PNG);
+
+										ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+										ImGui::Image(silver_texture, ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+										ImGui::SameLine();
+										ImGui::SetCursorPosY(savedCursor.y);
+
+										ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+										ImGui::Dummy(ImVec2(1.0f, 0.f));
+										ImGui::PopStyleVar();
+
+										ImGui::SameLine();
+									}
+
+									if (copper > 0 || silver > 0 || gold > 0) {
+										ImGui::TextColored(COLOR_CURRENCY_COPPER, std::format("{}", copper).c_str());
+										ImGui::SameLine();
+
+										void* copper_texture = this->LoadResourceTexture("copper", COPPER_PNG);
+
+										ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+										ImGui::Image(copper_texture, ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+										ImGui::SameLine();
+
+										ImGui::SetCursorPosY(savedCursor.y);
+
+										ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+										ImGui::Dummy(ImVec2(1.0f, 0.f));
+										ImGui::PopStyleVar();
+									}
+
+									ImGui::PopStyleVar();
+								}
 
 								ImGui::EndTooltip();
 							}
@@ -205,34 +309,48 @@ void Finder::Render() {
 					}
 				}
 			}
+		}
 
-			ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, FLT_MIN), ImVec2(400.0f, FLT_MAX));
+		ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, FLT_MIN), ImVec2(400.0f, FLT_MAX));
 
-			if (ImGui::BeginPopupModal("API Key", &this->state->api_window, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar)) {
-				ImGui::Text(std::format("Account ID: {0}", this->id).c_str());
-				ImGui::InputText("##api_key", this->state->key_buffer, IM_ARRAYSIZE(this->state->key_buffer), ImGuiInputTextFlags_Password);
+		if (ImGui::BeginPopupModal("API Key", &this->state->api_window, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar)) {
+			ImGui::Text(std::format("Account ID: {0}", this->id).c_str());
 
-				auto save = ImGui::Button("Save");
-				ImGui::SameLine();
-				auto cancel = ImGui::Button("Cancel");
+			auto save = ImGui::InputText("##api_key", this->state->key_buffer, IM_ARRAYSIZE(this->state->key_buffer), ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
 
-				if (cancel) {
-					this->client->update_token(this->config->get_api_key(this->id));
+			save = ImGui::Button("Save") || save;
 
-					ImGui::CloseCurrentPopup();
-				}
+			if (save) {
+				helper::str_trim(this->state->key_buffer);
 
-				if (save) {
-					ImGui::CloseCurrentPopup();
-				}
+				this->config->set_api_key(this->id, this->state->key_buffer);
+				this->config->save();
 
-				ImGui::EndPopup();
+				this->client->update_token(this->config->get_api_key(this->id));
+
+				ImGui::CloseCurrentPopup();
 			}
+
+			ImGui::SameLine();
+			auto cancel = ImGui::Button("Cancel");
+
+			if (cancel) {
+				// restore the old api key
+				strcpy_s(this->state->key_buffer, this->config->get_api_key(this->id).c_str());
+
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
 		}
 	}
 	ImGui::End();
 }
 
-void Finder::SetTextureLoader(LOAD_TEXTURE texture_loader) {
-	this->load_texture = texture_loader;
+void Finder::SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader) {
+	this->load_remote_texture = texture_loader;
+}
+
+void Finder::SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader) {
+	this->load_resource_texture = texture_loader;
 }

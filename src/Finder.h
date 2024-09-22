@@ -5,16 +5,14 @@
 #include "ItemStore.h"
 #include "Config.h"
 
-struct FinderItem {
-	Item* item;
-	ItemTexture* thumb;
-};
+typedef void* (*LOAD_REMOTE_TEXTURE) (const char* identifier, const char* url);
+typedef void* (*LOAD_RESOURCE_TEXTURE) (const char* identifier, const int resourceId);
 
 struct FinderState {
 	char query[256];
 	char key_buffer[256];
 
-	std::map<std::string, std::vector<FinderItem*>> items;
+	std::map<std::string, std::vector<Item>> items;
 
 	bool needs_refresh;
 	bool can_manual_refresh;
@@ -34,7 +32,6 @@ struct FinderState {
 	}
 };
 
-typedef void (*LOAD_TEXTURE) (const char* identifier, const char* url, ItemTexture*& out_texture);
 
 class Finder {
 private:
@@ -46,13 +43,16 @@ private:
 	ItemStore* store = nullptr;
 	APIClient* client = nullptr;
 
-	LOAD_TEXTURE load_texture = nullptr;
+	LOAD_REMOTE_TEXTURE load_remote_texture = nullptr;
+	LOAD_RESOURCE_TEXTURE load_resource_texture = nullptr;
 
 	std::vector<Item> items;
 
 	std::optional<chrono::time_point> last_tick;
 
-	void LoadTexture(const char* identifier, const char* url, ItemTexture*& out_texture) const;
+	void* LoadRemoteTexture(const char* identifier, const char* url) const;
+	void* LoadResourceTexture(const char* identifier, int resourceId) const;
+
 	void tick() noexcept;
 	void refresh_store() noexcept;
 
@@ -63,7 +63,7 @@ private:
 		if (api_key != "") {
 			if (this->client == nullptr) {
 				this->client = new APIClient(this->id, api_key);
-				this->store = new ItemStore(this->client, this->dir);
+				this->store = new ItemStore(this->id, this->client, this->dir);
 			} else {
 				this->client->update_token(api_key);
 			}
@@ -76,7 +76,9 @@ public:
 
 	void InitImGui(void* ctxt, void* imgui_malloc, void* imgui_free);
 	void Render();
-	void SetTextureLoader(LOAD_TEXTURE texture_loader);
+
+	void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
+	void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
 
 	Finder(std::string id, std::string dir) {
 		this->id = id;

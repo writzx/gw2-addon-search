@@ -220,6 +220,15 @@
     <Image Include="res\freg.png">
       <Filter>res</Filter>
     </Image>
+    <Image Include="copper.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="gold.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="silver.png">
+      <Filter>res</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res\resource.rc">

@@ -16,6 +16,27 @@ struct Endpoint {
 	EndpointType type;
 };
 
+struct EndpointComparator {
+	bool operator()(const std::string& lhs, const std::string& rhs) const {
+		int lhs_sort_val = INT_MAX;
+		int rhs_sort_val = INT_MAX;
+
+		if (ENDPOINT_SORT_ORDER.contains(lhs)) {
+			lhs_sort_val = ENDPOINT_SORT_ORDER.at(lhs);
+		} else if (lhs.starts_with("/character")) {
+			lhs_sort_val = ENDPOINT_SORT_ORDER.at("/character");
+		}
+
+		if (ENDPOINT_SORT_ORDER.contains(rhs)) {
+			rhs_sort_val = ENDPOINT_SORT_ORDER.at(rhs);
+		} else if (rhs.starts_with("/character")) {
+			rhs_sort_val = ENDPOINT_SORT_ORDER.at("/character");
+		}
+
+		return lhs_sort_val < rhs_sort_val;
+	}
+};
+
 const std::map<std::string, Endpoint> ENDPOINTS = {
 	{
 		"/account/bank",

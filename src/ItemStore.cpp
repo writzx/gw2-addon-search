@@ -118,7 +118,7 @@ bool ItemStore::should_auto_refresh() {
 }
 
 bool ItemStore::can_search() {
-	return this->last_refresh.has_value() && std::filesystem::is_regular_file(std::format("{0}\\{1}", this->dir, STORED_DB_FILENAME));
+	return this->last_refresh.has_value() && std::filesystem::is_regular_file(std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME));
 }
 
 void ItemStore::refresh() {
@@ -139,8 +139,8 @@ void ItemStore::refresh() {
 		this->status = "refreshing...";
 		this->last_status = chrono::now();
 
-		auto stored_db_loc = std::format("{0}\\{1}", this->dir, STORED_DB_FILENAME_TEMP);
-		auto stored_db_loc_final = std::format("{0}\\{1}", this->dir, STORED_DB_FILENAME);
+		auto stored_db_loc = std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME_TEMP);
+		auto stored_db_loc_final = std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME);
 
 		this->store_lock.lock();
 
@@ -191,7 +191,7 @@ void ItemStore::refresh() {
 }
 
 void ItemStore::search(std::string keyword, std::vector<Item>& results) const {
-	SQLite::Database stored_items(std::format("{0}\\{1}", this->dir, STORED_DB_FILENAME), SQLite::OPEN_READONLY);
+	SQLite::Database stored_items(std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME), SQLite::OPEN_READONLY);
 
 	std::string items_db_path = this->dir + "\\items_en.db";
 
@@ -222,6 +222,7 @@ void ItemStore::search(std::string keyword, std::vector<Item>& results) const {
 			.skin = query.getColumn(ITEM_SKIN_COLUMN.c_str()),
 			.category = query.getColumn(ITEM_CATEGORY_COLUMN.c_str()),
 			.binding = query.getColumn(ITEM_BINDING_COLUMN.c_str()),
+			.endpoint_path = query.getColumn(ENDPOINT_ID_COLUMN.c_str()),
 			.endpoint = query.getColumn(ENDPOINT_LABEL_COLUMN.c_str())
 		};
 		results.push_back(item);
@@ -232,7 +233,7 @@ std::vector<StoredEndpoint> ItemStore::endpoints() {
 	auto eps = this->api_client->endpoints();
 	std::vector<StoredEndpoint> seps;
 
-	SQLite::Database stored_items(std::format("{0}\\{1}", this->dir, STORED_DB_FILENAME), SQLite::OPEN_READONLY);
+	SQLite::Database stored_items(std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME), SQLite::OPEN_READONLY);
 
 	SQLite::Statement query(stored_items, LIST_ENDPOINTS);
 

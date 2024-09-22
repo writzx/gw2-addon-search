@@ -142,7 +142,7 @@ int WinMain(
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
+	ImGui::StyleColorsClassic();
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(hwnd);
@@ -151,7 +151,13 @@ int WinMain(
 	// state
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	AddonLoadStandalone(ctxt, ImGui::MemAlloc, ImGui::MemFree, ::LoadTextureFromResource, get_dir().c_str());
+	auto dir = get_dir();
+
+	AddonLoadStandalone(ctxt, ImGui::MemAlloc, ImGui::MemFree, ::LoadTextureFromResource, dir.c_str());
+
+	if (std::filesystem::exists(std::format("{0}\\test_font.ttf", dir))) {
+		io.Fonts->AddFontFromFileTTF(std::format("{0}\\test_font.ttf", dir).c_str(), 17.0f);
+	}
 
 	// Main loop
 	bool done = false;
@@ -186,9 +192,15 @@ int WinMain(
 		// Start the Dear ImGui frame
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
+
 		ImGui::NewFrame();
 
+		ImFont* font = io.Fonts->Fonts[0];
+		ImGui::PushFont(font);
+
 		AddonRenderStandalone();
+
+		ImGui::PopFont();
 
 		// Rendering
 		ImGui::Render();

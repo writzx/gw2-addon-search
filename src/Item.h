@@ -46,6 +46,7 @@ struct Item {
 
 	std::string binding;
 
+	std::string endpoint_path;
 	std::string endpoint;
 
 	std::string display_name() const {
@@ -100,8 +101,3 @@ struct Item {
 	}
 };
 
-struct ItemTexture {
-	void* shader; // ID3D11ShaderResourceView*
-	int width;
-	int height;
-};
