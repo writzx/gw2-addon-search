@@ -184,9 +184,8 @@ extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef() {
 	AddonDef.Unload = AddonUnload;
 	AddonDef.Flags = EAddonFlags_None;
 
-	/* not necessary if hosted on Raidcore, but shown anyway for the example also useful as a backup resource */
-	//AddonDef.Provider = EUpdateProvider_GitHub;
-	//AddonDef.UpdateLink = "https://github.com/writzx/gw2-addon-Search";
+	AddonDef.Provider = EUpdateProvider_GitHub;
+	AddonDef.UpdateLink = "https://github.com/writzx/gw2-addon-Search";
 
 	return &AddonDef;
 }
