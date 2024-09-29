@@ -71,7 +71,7 @@ void Finder::tick() noexcept {
 	this->state->can_search = this->store->can_search();
 
 	if (this->state->needs_refresh) {
-		//refresh_store();
+		refresh_store();
 	}
 }
 
@@ -380,7 +380,7 @@ void Finder::Render() {
 				this->config->set_api_key(this->id, this->state->key_buffer);
 				this->config->save();
 
-				this->client->update_token(this->config->get_api_key(this->id));
+				this->init_or_update_client();
 
 				ImGui::CloseCurrentPopup();
 			}

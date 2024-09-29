@@ -76,7 +76,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite;res</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderOutputFile />
     </ClCompile>
