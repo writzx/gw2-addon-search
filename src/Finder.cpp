@@ -21,6 +21,22 @@ void* Finder::LoadResourceTexture(const char* identifier, int resourceId) const 
 	return nullptr;
 }
 
+void Finder::Show() {
+	this->is_shown = true;
+}
+
+void Finder::Hide() {
+	this->is_shown = false;
+}
+
+void Finder::Toggle() {
+	if (this->is_shown) {
+		this->Hide();
+	} else {
+		this->Show();
+	}
+}
+
 void Finder::InitImGui(void* ctxt, void* imgui_malloc, void* imgui_free) {
 	ImGui::SetCurrentContext((ImGuiContext*) ctxt);
 	ImGui::SetAllocatorFunctions((void* (*)(size_t, void*))imgui_malloc, (void(*)(void*, void*))imgui_free);
@@ -60,7 +76,10 @@ void Finder::tick() noexcept {
 }
 
 void Finder::Render() {
-	ImVec2 savedCursor;
+	ImVec2 savedCursor, minPoint, maxPoint, itemSize;
+	bool hovered;
+	ImVec2 padding = ImGui::GetStyle().FramePadding;
+	ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
 
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -68,19 +87,20 @@ void Finder::Render() {
 		this->tick();
 	}
 
-	ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, 300.0f), ImVec2(FLT_MAX, FLT_MAX));
+	if (!this->is_shown) {
+		return;
+	}
 
-	auto winSize = ImGui::GetWindowSize();
-	auto numGridCols = std::floor(winSize.x / GRID_ITEM_SIZE) - 1;
+	ImGui::SetNextWindowSizeConstraints(ImVec2(420.0f, 300.0f), ImVec2(FLT_MAX, FLT_MAX));
 
-	if (ImGui::Begin("Finder")) {
+	if (ImGui::Begin("Finder", &this->is_shown)) {
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 		if (this->store != nullptr && this->client != nullptr && this->store->refreshing) {
-			ImGuiHelper::BeginDisable();
+			ImGuiExtras::BeginDisable();
 		}
 
-		auto apiButton = ImGui::Button("API");
+		auto apiButton = ImGui::Button("API", ImVec2(0, REFRESH_BUTTON_SIZE));
 
 		if (apiButton) {
 			this->state->api_window = true;
@@ -88,7 +108,7 @@ void Finder::Render() {
 		}
 
 		if (this->store != nullptr && this->client != nullptr && this->store->refreshing) {
-			ImGuiHelper::EndDisable();
+			ImGuiExtras::EndDisable();
 		}
 
 		ImGui::SameLine();
@@ -103,13 +123,32 @@ void Finder::Render() {
 			bool can_refresh = this->state->can_manual_refresh && !this->store->refreshing;
 
 			if (!can_refresh) {
-				ImGuiHelper::BeginDisable();
+				ImGuiExtras::BeginDisable(true);
 			}
 
-			refreshBtn = ImGui::Button("Refresh");
+			savedCursor = ImGui::GetCursorScreenPos();
+			refreshBtn = ImGui::Button("##refresh", ImVec2(REFRESH_BUTTON_SIZE, REFRESH_BUTTON_SIZE));
+
+			hovered = ImGui::IsItemHovered();
+
+			auto spinnerLocation = ImVec2(
+				savedCursor.x - REFRESH_SPINNER_RADIUS - padding.x + (REFRESH_BUTTON_SIZE * 0.5),
+				savedCursor.y - REFRESH_SPINNER_RADIUS - padding.y + (REFRESH_BUTTON_SIZE * 0.5)
+			);
+
+			ImGui::SetCursorScreenPos(spinnerLocation);
+
+			if (this->store->refreshing) {
+				ImGui::SetCursorScreenPos(ImVec2(spinnerLocation.x + padding.x, spinnerLocation.y));
+				ImGuiExtras::Spinner("##spinner", REFRESH_SPINNER_RADIUS, REFRESH_SPINNER_THICKNESS, IM_COL32(220, 220, 220, 255));
+			} else {
+				void* refresh_texture = this->LoadResourceTexture("refresh", REFRESH_PNG);
+
+				ImGui::Image(refresh_texture, ImVec2(REFRESH_BUTTON_SIZE, REFRESH_BUTTON_SIZE));
+			}
 
 			if (!can_refresh) {
-				ImGuiHelper::EndDisable();
+				ImGuiExtras::EndDisable();
 			}
 
 			if (refreshBtn && can_refresh) {
@@ -117,25 +156,34 @@ void Finder::Render() {
 			}
 #pragma endregion
 
-			ImGui::SameLine();
+			if (hovered) {
+				ImGui::SetNextWindowSizeConstraints(ImVec2(300.0f, FLT_MIN), ImVec2(300.0f, FLT_MAX));
 
-			auto last_updated = this->store->last_updated();
-			ImGui::TextWrapped(last_updated.has_value() ? helper::datetime_tostring(last_updated.value()).c_str() : "never");
+				ImGui::BeginTooltip();
 
-			ImGui::TextWrapped(this->store->status.c_str());
+				auto last_updated = this->store->last_updated();
+				ImGui::TextWrapped(last_updated.has_value() ? helper::datetime_tostring(last_updated.value()).c_str() : "never");
 
-			if (!this->state->can_search) {
-				ImGuiHelper::BeginDisable();
+				ImGui::TextWrapped(this->store->status.c_str());
+
+				ImGui::EndTooltip();
 			}
 
+			ImGui::SameLine();
+
+			if (!this->state->can_search) {
+				ImGuiExtras::BeginDisable();
+			}
+
+			ImGui::SetCursorScreenPos(ImVec2(spinnerLocation.x + REFRESH_BUTTON_SIZE + spacing.x, spinnerLocation.y));
 			auto doSearch = ImGui::InputText("##search_input", this->state->query, IM_ARRAYSIZE(this->state->query), ImGuiInputTextFlags_EnterReturnsTrue);
 
 			ImGui::SameLine();
 
-			doSearch = ImGui::Button("Search") || doSearch;
+			doSearch = ImGui::Button("Search", ImVec2(0, REFRESH_BUTTON_SIZE)) || doSearch;
 
 			if (!this->state->can_search) {
-				ImGuiHelper::EndDisable();
+				ImGuiExtras::EndDisable();
 			}
 
 			if (doSearch) {
@@ -155,12 +203,17 @@ void Finder::Render() {
 				}
 			}
 
+			auto winSize = ImGui::GetContentRegionAvail();
+			auto numGridCols = std::floor(winSize.x / GRID_ITEM_SIZE) - 2;
+
 			for (const auto& [ep, results] : this->state->items) {
 				if (results.size() <= 0) {
 					continue;
 				}
 
-				if (ImGui::CollapsingHeader(std::format("{}", results[0].endpoint).c_str()), ImGuiTreeNodeFlags_DefaultOpen) {
+				if (ImGui::CollapsingHeader(std::format("{}", results[0].endpoint).c_str(), ImGuiTreeNodeFlags_Leaf)) {
+					ImGui::PushItemWidth(winSize.x);
+
 					if (ImGui::BeginTable(std::format("Table: {}", ep).c_str(), numGridCols)) {
 						for (int col = 0; col < numGridCols; col++) {
 							ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, GRID_ITEM_SIZE);
@@ -172,12 +225,12 @@ void Finder::Render() {
 							ImGui::TableNextColumn();
 							ImGui::Image(texture, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
 
-							auto minPoint = ImGui::GetItemRectMin();
-							auto maxPoint = ImGui::GetItemRectMax();
+							minPoint = ImGui::GetItemRectMin();
+							maxPoint = ImGui::GetItemRectMax();
 
 							std::string rarity = result.rarity;
 
-							bool hovered = ImGui::IsItemHovered();
+							hovered = ImGui::IsItemHovered();
 							auto& rarity_color = BORDER_COLORS.at(rarity);
 							auto& rarity_color_hover = BORDER_COLORS_HOVER.at(rarity);
 
@@ -220,13 +273,13 @@ void Finder::Render() {
 
 								ImGui::TextColored(rarity_color, result.display_name().c_str());
 
-								ImGuiHelper::TextWrapped(result.clean_description(), 300.0f);
+								ImGuiExtras::TextWrapped(result.clean_description(), 300.0f);
 
 								ImGui::Dummy(ImVec2(0.0f, 8.0f));
 
-								ImGuiHelper::Text(result.display_type());
-								ImGuiHelper::Text(result.required_level());
-								ImGuiHelper::Text(result.display_binding());
+								ImGuiExtras::Text(result.display_type());
+								ImGuiExtras::Text(result.required_level());
+								ImGuiExtras::Text(result.display_binding());
 
 								if (result.vendor_value > 0) {
 									ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
@@ -308,6 +361,7 @@ void Finder::Render() {
 						ImGui::EndTable();
 					}
 				}
+				ImGui::PopItemWidth();
 			}
 		}
 

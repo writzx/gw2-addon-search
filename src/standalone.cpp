@@ -53,6 +53,8 @@ void AddonLoadStandalone(void* ctxt, void* imgui_malloc, void* imgui_free, void*
 
 	finder->InitImGui(ctxt, imgui_malloc, imgui_free);
 
+	finder->Toggle();
+
 	tex_loader = (LOAD_TEXTURE_RAW) texture_loader;
 
 	finder->SetRemoteTextureLoader(LoadTexture);

@@ -229,6 +229,21 @@
     <Image Include="silver.png">
       <Filter>res</Filter>
     </Image>
+    <Image Include="res\copper.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="res\gold.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="refresh.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="res\refresh.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="res\silver.png">
+      <Filter>res</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res\resource.rc">

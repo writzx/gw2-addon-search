@@ -35,6 +35,8 @@ struct FinderState {
 
 class Finder {
 private:
+	bool is_shown;
+
 	Config* config;
 
 	std::string id;
@@ -73,6 +75,10 @@ private:
 	}
 public:
 	FinderState* state;
+
+	void Show();
+	void Hide();
+	void Toggle();
 
 	void InitImGui(void* ctxt, void* imgui_malloc, void* imgui_free);
 	void Render();

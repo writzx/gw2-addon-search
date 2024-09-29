@@ -119,6 +119,22 @@ static void HandleAccountName(void* account_name) {
 	finder->SetResourceTextureLoader(load_texture);
 }
 
+static void ToggleFinder(const char* aIdentifier, bool aIsRelease) {
+	if (finder == nullptr) {
+		return;
+	}
+
+	finder->Toggle();
+}
+
+static void ToggleFinder() {
+	if (finder == nullptr) {
+		return;
+	}
+
+	finder->Toggle();
+}
+
 static void AddonLoad(AddonAPI* api) {
 	// save nexus for use later
 	NEXUS = api;
@@ -139,17 +155,25 @@ static void AddonLoad(AddonAPI* api) {
 		ADDON_MODULE,
 		LoadFregCallback
 	);
+
+	NEXUS->AddShortcut("ToggleFinder", "freg", "freg", "ToggleFinder", "Show Finder Window.");
+	NEXUS->RegisterKeybindWithString("ToggleFinder", ToggleFinder, "Ctrl+F");
 }
 
 static void AddonUnload() {
 	// deregister addon renderer
 	NEXUS->DeregisterRender(AddonRender);
+
+	NEXUS->UnsubscribeEvent("EV_ACCOUNT_NAME", HandleAccountName);
+
+	NEXUS->RemoveShortcut("ToggleFinder");
+	NEXUS->DeregisterKeybind("ToggleFinder");
 }
 
 extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef() {
 	AddonDef.Signature = -1337;
 	AddonDef.APIVersion = NEXUS_API_VERSION;
-	AddonDef.Name = "Search";
+	AddonDef.Name = "Finder";
 	AddonDef.Version.Major = 0;
 	AddonDef.Version.Minor = 0;
 	AddonDef.Version.Build = 1;

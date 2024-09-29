@@ -19,6 +19,9 @@ const float BORDER_WIDTH = 1.0f;
 const float GRID_ITEM_SIZE = 48.0f;
 const float TOOLTIP_ICON_SIZE = 32.0f;
 const float CURRENCY_ICON_SIZE = 15.0f;
+const float REFRESH_BUTTON_SIZE = 24.0f;
+const float REFRESH_SPINNER_RADIUS = 8.0f;
+const float REFRESH_SPINNER_THICKNESS = 2.0f;
 
 const std::regex HTML_TAGS_PATTERN("<[^>]*>");
 

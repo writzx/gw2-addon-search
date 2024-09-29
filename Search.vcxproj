@@ -160,7 +160,12 @@
   <ItemGroup>
     <Image Include="copper.png" />
     <Image Include="gold.png" />
+    <Image Include="refresh.png" />
+    <Image Include="res\copper.png" />
     <Image Include="res\freg.png" />
+    <Image Include="res\gold.png" />
+    <Image Include="res\refresh.png" />
+    <Image Include="res\silver.png" />
     <Image Include="silver.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
