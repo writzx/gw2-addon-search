@@ -55,12 +55,13 @@
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite;res</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR)\VC\x64\MD</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR)\VC\x64\MTd</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl_static.lib;libcrypto_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference />
@@ -79,6 +80,7 @@
       <AdditionalIncludeDirectories>$(OPENSSL_INCLUDE_DIR);include;include\sqlite;res</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderOutputFile />
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -87,7 +89,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>libssl_static.lib;libcrypto_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR)\VC\x64\MD</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OPENSSL_LIB_DIR)\VC\x64\MT</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

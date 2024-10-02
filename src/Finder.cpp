@@ -188,18 +188,21 @@ void Finder::Render() {
 
 			if (doSearch) {
 				helper::str_trim(this->state->query);
-				this->state->items.clear();
 
-				items.clear();
-				this->store->search(this->state->query, items);
+				if (strlen(this->state->query) > 2) {
+					this->state->items.clear();
 
-				for (auto& item : items) {
-					if (!this->state->items.contains(item.endpoint_path)) {
-						std::vector<Item> ep_items;
-						this->state->items[item.endpoint_path] = ep_items;
+					items.clear();
+					this->store->search(this->state->query, items);
+
+					for (auto& item : items) {
+						if (!this->state->items.contains(item.endpoint_path)) {
+							std::vector<Item> ep_items;
+							this->state->items[item.endpoint_path] = ep_items;
+						}
+
+						this->state->items[item.endpoint_path].push_back(item);
 					}
-
-					this->state->items[item.endpoint_path].push_back(item);
 				}
 			}
 

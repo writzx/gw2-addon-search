@@ -22,12 +22,12 @@ private:
 public:
 	std::string id;
 	APIClient* api_client;
-	std::string dir;
+	std::filesystem::path dir;
 	std::string status;
 	bool refreshing;
 	chrono::time_point last_status;
 
-	ItemStore(std::string id, APIClient* client, std::string dir):
+	ItemStore(std::string id, APIClient* client, std::filesystem::path dir):
 		id(id),
 		api_client(client),
 		dir(dir),

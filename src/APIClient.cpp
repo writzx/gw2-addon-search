@@ -39,7 +39,7 @@ std::map<std::string, Endpoint> APIClient::endpoints(bool refresh) {
 		json characters = json::parse(this->get_or_throw("/" + API_VERSION + "/characters"));
 
 		for (json& character : characters) {
-			std::string charName = character.template get<std::string>();
+			std::string charName = character.get<std::string>();
 
 			Endpoint ep = {
 				.label = charName,

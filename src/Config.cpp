@@ -35,7 +35,7 @@ void Config::load() {
 		}
 	} catch (...) {
 		if (std::filesystem::is_regular_file(this->path)) {
-			std::filesystem::rename(this->path, std::format("{0}.bak", this->path));
+			std::filesystem::rename(this->path, std::format("{0}.bak", this->path.string()));
 		}
 
 		this->data = empty();

@@ -5,7 +5,7 @@
 class Config {
 private:
 	json data;
-	std::string path;
+	std::filesystem::path path;
 
 	std::vector<std::string> verified;
 public:
@@ -15,7 +15,7 @@ public:
 	void load();
 	void save();
 
-	Config(std::string path) {
+	Config(std::filesystem::path path) {
 		this->path = path;
 
 		this->load();

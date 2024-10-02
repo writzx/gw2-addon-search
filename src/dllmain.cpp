@@ -101,11 +101,11 @@ static void HandleAccountName(void* account_name) {
 	}
 
 	std::string raw_id = static_cast<const char*>(account_name);
-	auto addon_dir = NEXUS->GetAddonDirectory("Search");
+	std::filesystem::path addon_dir(NEXUS->GetAddonDirectory("Search"));
 
 	auto id = raw_id.substr(raw_id.find_first_not_of(":"), raw_id.find_last_not_of(":"));
 
-	std::string store_path = std::format("{0}\\{1}", addon_dir, id);
+	std::filesystem::path store_path = addon_dir / id;
 
 	if (!std::filesystem::exists(store_path) || !std::filesystem::is_directory(store_path)) {
 		std::filesystem::create_directories(store_path);
@@ -156,7 +156,7 @@ static void AddonLoad(AddonAPI* api) {
 		LoadFregCallback
 	);
 
-	NEXUS->AddShortcut("ToggleFinder", "freg", "freg", "ToggleFinder", "Show Finder Window.");
+	NEXUS->AddShortcut("ToggleFinder", "freg", "freg", "ToggleFinder", "Show Finder Window");
 	NEXUS->RegisterKeybindWithString("ToggleFinder", ToggleFinder, "Ctrl+F");
 }
 

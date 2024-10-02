@@ -40,7 +40,7 @@ private:
 	Config* config;
 
 	std::string id;
-	std::string dir;
+	std::filesystem::path dir;
 
 	ItemStore* store = nullptr;
 	APIClient* client = nullptr;
@@ -86,12 +86,12 @@ public:
 	void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
 	void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
 
-	Finder(std::string id, std::string dir) {
+	Finder(std::string id, std::filesystem::path dir) {
 		this->id = id;
 		this->dir = dir;
 
 		this->state = new FinderState();
-		this->config = new Config(std::format("{0}\\{1}", dir, CONFIG_JSON_FILENAME));
+		this->config = new Config(dir / CONFIG_JSON_FILENAME);
 
 		init_or_update_client();
 	}

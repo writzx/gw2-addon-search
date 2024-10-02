@@ -118,7 +118,9 @@ bool ItemStore::should_auto_refresh() {
 }
 
 bool ItemStore::can_search() {
-	return this->last_refresh.has_value() && std::filesystem::is_regular_file(std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME));
+	return this->last_refresh.has_value()
+		&& std::filesystem::is_regular_file(this->dir / this->id / STORED_DB_FILENAME)
+		&& std::filesystem::is_regular_file(this->dir / "items_en.db");
 }
 
 void ItemStore::refresh() {
@@ -139,8 +141,8 @@ void ItemStore::refresh() {
 		this->status = "refreshing...";
 		this->last_status = chrono::now();
 
-		auto stored_db_loc = std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME_TEMP);
-		auto stored_db_loc_final = std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME);
+		auto stored_db_loc = this->dir / this->id / STORED_DB_FILENAME_TEMP;
+		auto stored_db_loc_final = this->dir / this->id / STORED_DB_FILENAME;
 
 		this->store_lock.lock();
 
@@ -191,9 +193,9 @@ void ItemStore::refresh() {
 }
 
 void ItemStore::search(std::string keyword, std::vector<Item>& results) const {
-	SQLite::Database stored_items(std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME), SQLite::OPEN_READONLY);
+	SQLite::Database stored_items(this->dir / this->id / STORED_DB_FILENAME, SQLite::OPEN_READONLY);
 
-	std::string items_db_path = this->dir + "\\items_en.db";
+	auto items_db_path = (this->dir / "items_en.db").string();
 
 	std::string attach_sql = vformat(ATTACH_DB, make_format_args(items_db_path));
 
@@ -233,7 +235,7 @@ std::vector<StoredEndpoint> ItemStore::endpoints() {
 	auto eps = this->api_client->endpoints();
 	std::vector<StoredEndpoint> seps;
 
-	SQLite::Database stored_items(std::format("{0}\\{1}\\{2}", this->dir, this->id, STORED_DB_FILENAME), SQLite::OPEN_READONLY);
+	SQLite::Database stored_items(this->dir / this->id / STORED_DB_FILENAME, SQLite::OPEN_READONLY);
 
 	SQLite::Statement query(stored_items, LIST_ENDPOINTS);
 

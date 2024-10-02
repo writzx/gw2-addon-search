@@ -45,11 +45,13 @@ static void* LoadTexture(const char* identifier, int resId) {
 void AddonLoadStandalone(void* ctxt, void* imgui_malloc, void* imgui_free, void* texture_loader, const char* config_dir) {
 	const char* account_id = "AriK.3481";
 
-	if (!std::filesystem::exists(std::format("{0}\\{1}", config_dir, account_id)) || !std::filesystem::is_directory(std::format("{0}\\{1}", config_dir, account_id))) {
-		std::filesystem::create_directories(std::format("{0}\\{1}", config_dir, account_id));
+	auto config_path = std::filesystem::path(config_dir);
+
+	if (!std::filesystem::exists(config_path / account_id) || !std::filesystem::is_directory(config_path / account_id)) {
+		std::filesystem::create_directories(config_path / account_id);
 	}
 
-	finder = new Finder(account_id, config_dir);
+	finder = new Finder(account_id, config_path);
 
 	finder->InitImGui(ctxt, imgui_malloc, imgui_free);
 
