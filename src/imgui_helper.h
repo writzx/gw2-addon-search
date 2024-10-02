@@ -73,3 +73,19 @@ namespace ImGuiExtras {
         return true;
     }
 }
+
+ImVec2 operator+(const ImVec2& first, const ImVec2& second) {
+	return ImVec2(first.x + second.x, first.y + second.y);
+}
+
+ImVec2 operator-(const ImVec2& first, const ImVec2& second) {
+	return ImVec2(first.x - second.x, first.y - second.y);
+}
+
+ImVec2 operator+(const ImVec2& first, const float& second) {
+	return ImVec2(first.x + second, first.y + second);
+}
+
+ImVec2 operator-(const ImVec2& first, const float& second) {
+	return ImVec2(first.x - second, first.y - second);
+}
