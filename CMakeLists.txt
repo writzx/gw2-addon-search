@@ -6,39 +6,43 @@ if (NOT MSVC)
     message(FATAL_ERROR "msvc is required")
 endif ()
 
+# dll
 add_library(${PROJECT_NAME} SHARED)
 
 # include dirs
-include_directories(include include/imgui include/sqlite include/SQLiteCpp include/nlohmann include/thread_pool src res)
+include_directories(include include/sqlite include/SQLiteCpp include/nlohmann include/thread_pool src res)
 include_directories($ENV{OPENSSL_INCLUDE_DIR})
 
 # src
-file(GLOB_RECURSE SOURCES src/*.cpp)
-#file(GLOB_RECURSE HEADERS src/*.h)
-file(GLOB_RECURSE SQLITECPP_SRC include/SQLiteCpp/*.cpp)
+file(GLOB SOURCES src/*.cpp)
+file(GLOB IMGUI_SRC include/imgui/*.cpp)
+file(GLOB SQLITE_CPP_SRC include/SQLiteCpp/*.cpp)
+
+# add source files
+target_sources(
+        ${PROJECT_NAME}
+        PRIVATE
+        ${SOURCES}
+        ${IMGUI_SRC}
+        ${SQLITE_CPP_SRC}
+        ${RESOURCE_FILES}
+)
+
 # resources
-file(GLOB_RECURSE RESOURCE_FILES res/*.rc)
 file(GLOB_RECURSE RESOURCE_IMAGES res/*.png)
 
 foreach (IMAGE ${RESOURCE_IMAGES})
     configure_file(${IMAGE} ${CMAKE_BINARY_DIR}/res COPYONLY)
 endforeach ()
 
-# embed resources
-target_sources(${PROJECT_NAME} PRIVATE ${RESOURCE_FILES})
-
+# add resources
 target_sources(
         ${PROJECT_NAME}
         PRIVATE
-        ${SOURCES}
-        #        ${HEADERS}
-        ${SQLITECPP_SRC}
-        ${RESOURCE_FILES}
+        res/resource.h
+        res/resource.rc
+        ${RESOURCE_IMAGES}
 )
-target_sources(${PROJECT_NAME} PRIVATE res/resource.h)
-
-# link sqlite3 static
-target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlite/sqlite3.lib)
 
 # define openssl lib based on build config
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -54,12 +58,15 @@ else ()
 endif ()
 
 # link openssl static
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(
+        ${PROJECT_NAME}
+        PRIVATE
         ${OPENSSL_LIB_PATH}/libssl_static.lib
-        ${OPENSSL_LIB_PATH}/libcrypto_static.lib)
-
-# export symbol
-target_compile_definitions(${PROJECT_NAME} PRIVATE FINDER_EXPORTS)
+        ${OPENSSL_LIB_PATH}/libcrypto_static.lib
+)
 
 # include openssl
 target_include_directories(${PROJECT_NAME} PRIVATE $ENV{OPENSSL_INCLUDE_DIR})
+
+# link sqlite3 static
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlite/sqlite3.lib)
