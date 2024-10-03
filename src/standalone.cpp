@@ -1,11 +1,16 @@
 #include <filesystem>
-#include <format>
 
 #include "standalone.h"
+#include "Finder.h"
+#include "resource.h"
 
-std::map<std::string, void *> loaded_textures;
+namespace {
+    Finder *finder;
+    LOAD_TEXTURE_RAW tex_loader = nullptr;
+    std::map<std::string, void *> loaded_textures;
+}
 
-static void *LoadTexture(const char *identifier, const char *url) {
+static void *LoadTexture(const char */*identifier*/, const char */*url*/) {
     if (loaded_textures.contains("freg")) {
         return loaded_textures.at("freg");
     }
@@ -49,20 +54,22 @@ void AddonLoadStandalone(
     void *texture_loader,
     const char *config_dir
 ) {
-    const char *account_id = "AriK.3481";
+    const auto account_id = "AriK.3481";
 
-    auto config_path = std::filesystem::path(config_dir);
+    const auto config_path = std::filesystem::path(config_dir);
 
-    if (!std::filesystem::exists(config_path / account_id) || !
-        std::filesystem::is_directory(config_path / account_id)) {
-        std::filesystem::create_directories(config_path / account_id);
+    if (!exists(config_path / account_id) || !
+        is_directory(config_path / account_id)) {
+        create_directories(config_path / account_id);
     }
 
     finder = new Finder(account_id, config_path);
 
-    finder->InitImGui(ctxt, imgui_malloc, imgui_free);
+    Finder::InitImGui(ctxt, imgui_malloc, imgui_free);
 
-    tex_loader = (LOAD_TEXTURE_RAW) texture_loader;
+    finder->Toggle();
+
+    tex_loader = static_cast<LOAD_TEXTURE_RAW>(texture_loader);
 
     finder->SetRemoteTextureLoader(LoadTexture);
     finder->SetResourceTextureLoader(LoadTexture);

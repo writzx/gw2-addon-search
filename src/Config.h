@@ -1,23 +1,24 @@
 #pragma once
-#include <iostream>
 #include "const.h"
 
 class Config {
-private:
-	json data;
-	std::filesystem::path path;
+    json data;
+    std::filesystem::path path;
 
-	std::vector<std::string> verified;
+    std::vector<std::string> verified;
+
 public:
-	std::string get_api_key(std::string id);
-	void set_api_key(std::string id, std::string api_key);
+    std::string get_api_key(const std::string &id);
 
-	void load();
-	void save();
+    void set_api_key(const std::string &id, const std::string &api_key);
 
-	Config(std::filesystem::path path) {
-		this->path = path;
+    void load();
 
-		this->load();
-	}
+    void save() const;
+
+    explicit Config(const std::filesystem::path &path) {
+        this->path = path;
+
+        this->load();
+    }
 };

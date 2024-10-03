@@ -1,98 +1,106 @@
 #pragma once
-#include <iostream>
 #include <vector>
 
 #include "ItemStore.h"
 #include "Config.h"
 
-typedef void* (*LOAD_REMOTE_TEXTURE) (const char* identifier, const char* url);
-typedef void* (*LOAD_RESOURCE_TEXTURE) (const char* identifier, const int resourceId);
+typedef void * (*LOAD_REMOTE_TEXTURE)(const char *identifier, const char *url);
+
+typedef void * (*LOAD_RESOURCE_TEXTURE)(const char *identifier, int resourceId);
 
 struct FinderState {
-	char query[256];
-	char key_buffer[256];
+    char query[256];
+    char key_buffer[256];
 
-	std::map<std::string, std::vector<Item>> items;
+    std::map<std::string, std::vector<Item> > items = {};
 
-	bool needs_refresh;
-	bool can_manual_refresh;
-	bool can_search;
+    bool needs_refresh;
+    bool can_manual_refresh;
+    bool can_search;
 
-	bool api_window;
+    bool api_window;
 
-	FinderState() {
-		std::memset(&this->query, 0, sizeof(this->query));
-		std::memset(&this->key_buffer, 0, sizeof(this->key_buffer));
+    // NOLINTNEXTLINE(*-pro-type-member-init)
+    FinderState() {
+        std::memset(&this->query, 0, sizeof(this->query));
+        std::memset(&this->key_buffer, 0, sizeof(this->key_buffer));
 
-		this->needs_refresh = true;
-		this->can_manual_refresh = true;
-		this->can_search = true;
+        this->needs_refresh = true;
+        this->can_manual_refresh = true;
+        this->can_search = true;
 
-		this->api_window = false;
-	}
+        this->api_window = false;
+    }
 };
 
 
 class Finder {
-private:
-	bool is_shown;
+    bool is_shown;
 
-	Config* config;
+    Config *config;
 
-	std::string id;
-	std::filesystem::path dir;
+    std::string id;
+    std::filesystem::path dir;
 
-	ItemStore* store = nullptr;
-	APIClient* client = nullptr;
+    ItemStore *store = nullptr;
+    APIClient *client = nullptr;
 
-	LOAD_REMOTE_TEXTURE load_remote_texture = nullptr;
-	LOAD_RESOURCE_TEXTURE load_resource_texture = nullptr;
+    LOAD_REMOTE_TEXTURE load_remote_texture = nullptr;
+    LOAD_RESOURCE_TEXTURE load_resource_texture = nullptr;
 
-	std::vector<Item> items;
+    std::vector<Item> items;
 
-	std::optional<chrono::time_point> last_tick;
+    std::optional<chrono::time_point> last_tick;
 
-	void* LoadRemoteTexture(const char* identifier, const char* url) const;
-	void* LoadResourceTexture(const char* identifier, int resourceId) const;
+    void *LoadRemoteTexture(const char *identifier, const char *url) const;
 
-	void tick() noexcept;
-	void refresh_store() noexcept;
+    void *LoadResourceTexture(const char *identifier, int resourceId) const;
 
-	void init_or_update_client() {
-		// todo maybe cleanup old variables
-		std::string api_key = this->config->get_api_key(this->id);
+    void tick() noexcept;
 
-		if (api_key != "") {
-			if (this->client == nullptr) {
-				this->client = new APIClient(this->id, api_key);
-				this->store = new ItemStore(this->id, this->client, this->dir);
-			} else {
-				this->client->update_token(api_key);
-			}
+    void refresh_store() const noexcept;
 
-			strcpy_s(this->state->key_buffer, api_key.c_str());
-		}
-	}
+    void init_or_update_client() {
+        const std::string api_key = this->config->get_api_key(this->id);
+
+        if (!api_key.empty()) {
+            if (this->client == nullptr) {
+                this->client = new APIClient(api_key);
+                this->store = new ItemStore(this->id, this->client, this->dir);
+            } else {
+                this->client->update_token(api_key);
+            }
+
+            strcpy_s(this->state->key_buffer, api_key.c_str());
+        }
+    }
+
 public:
-	FinderState* state;
+    FinderState *state;
 
-	void Show();
-	void Hide();
-	void Toggle();
+    void Show();
 
-	void InitImGui(void* ctxt, void* imgui_malloc, void* imgui_free);
-	void Render();
+    void Hide();
 
-	void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
-	void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
+    void Toggle();
 
-	Finder(std::string id, std::filesystem::path dir) {
-		this->id = id;
-		this->dir = dir;
+    static void InitImGui(void *ctxt, void *imgui_malloc, void *imgui_free);
 
-		this->state = new FinderState();
-		this->config = new Config(dir / CONFIG_JSON_FILENAME);
+    void Render();
 
-		init_or_update_client();
-	}
+    void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
+
+    void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
+
+    Finder(const std::string &id, const std::filesystem::path &dir) {
+        this->id = id;
+        this->dir = dir;
+
+        this->is_shown = false;
+
+        this->state = new FinderState();
+        this->config = new Config(dir / CONFIG_JSON_FILENAME);
+
+        init_or_update_client();
+    }
 };
