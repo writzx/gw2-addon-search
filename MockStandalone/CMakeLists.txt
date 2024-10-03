@@ -42,3 +42,11 @@ target_link_libraries(
         d3d11.lib
         dxgi.lib
 )
+
+add_subdirectory(.. Finder)
+
+add_custom_command(TARGET MockStandalone POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:Finder>"
+        $<TARGET_FILE_DIR:MockStandalone>
+)
