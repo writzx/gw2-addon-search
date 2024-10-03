@@ -6,7 +6,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <Shlwapi.h>
 
 #include <iostream>
 #include <format>
@@ -45,7 +44,7 @@ typedef void (*ADDON_LOAD) (void* ctxt, void*, void*, void*, const char*);
 typedef void (*ADDON_RENDER) ();
 
 void LoadTextureFromResource(int resId, HMODULE hInstance, void*& texture, int& out_width, int& out_height) {
-	HRSRC resource = FindResource(hInstance, MAKEINTRESOURCE(resId), L"PNG");
+	HRSRC resource = FindResource(hInstance, MAKEINTRESOURCE(resId), "PNG");
 	HGLOBAL loadedResource = LoadResource(hInstance, resource);
 	void* pData = LockResource(loadedResource);
 	DWORD size = SizeofResource(hInstance, resource);
@@ -101,7 +100,7 @@ int WinMain(
 	LPSTR     lpCmdLine,
 	int       nShowCmd
 ) {
-	HMODULE searchDll = LoadLibrary(L"Search.dll");
+	HMODULE searchDll = LoadLibrary("Search.dll");
 
 	if (!searchDll) {
 		std::cerr << "failed to load the search dll." << std::endl;
