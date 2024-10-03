@@ -31,7 +31,7 @@ namespace ImGuiExtras {
         }
     }
 
-    inline bool Spinner(const char *label, const float radius, const int thickness, const ImU32 &color) {
+    inline bool Spinner(const char *label, const float radius, const float thickness, const ImU32 &color) {
         ImGuiWindow *window = ImGui::GetCurrentWindow();
         if (window->SkipItems)
             return false;
@@ -68,24 +68,24 @@ namespace ImGuiExtras {
             ));
         }
 
-        window->DrawList->PathStroke(color, false, static_cast<float>(thickness));
+        window->DrawList->PathStroke(color, false, thickness);
 
         return true;
     }
 }
 
-ImVec2 operator+(const ImVec2& first, const ImVec2& second) {
-	return ImVec2(first.x + second.x, first.y + second.y);
+inline ImVec2 operator+(const ImVec2 &first, const ImVec2 &second) {
+    return {first.x + second.x, first.y + second.y};
 }
 
-ImVec2 operator-(const ImVec2& first, const ImVec2& second) {
-	return ImVec2(first.x - second.x, first.y - second.y);
+inline ImVec2 operator-(const ImVec2 &first, const ImVec2 &second) {
+    return {first.x - second.x, first.y - second.y};
 }
 
-ImVec2 operator+(const ImVec2& first, const float& second) {
-	return ImVec2(first.x + second, first.y + second);
+inline ImVec2 operator+(const ImVec2 &first, const float &second) {
+    return {first.x + second, first.y + second};
 }
 
-ImVec2 operator-(const ImVec2& first, const float& second) {
-	return ImVec2(first.x - second, first.y - second);
+inline ImVec2 operator-(const ImVec2 &first, const float &second) {
+    return {first.x - second, first.y - second};
 }
