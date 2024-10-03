@@ -2,6 +2,8 @@
 .idea
 .editorconfig
 *.txt
+!CMakeLists.txt
 x64
 Debug
 Search/
+cmake-build-debug
