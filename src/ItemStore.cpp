@@ -163,7 +163,7 @@ void ItemStore::refresh() {
 
         auto c_endpoints = this->api_client->endpoints(true);
 
-        std::vector<std::future<void> > futures;
+        std::vector<std::future<void>> futures;
 
         // fetches all the endpoints from the api and then refreshes every endpoint
         for (auto &e_endpoint: c_endpoints | std::views::values) {

@@ -12,7 +12,7 @@ struct FinderState {
     char query[256];
     char key_buffer[256];
 
-    std::map<std::string, std::vector<Item> > items = {};
+    std::map<std::string, std::vector<Item>> items = {};
 
     bool needs_refresh;
     bool can_manual_refresh;

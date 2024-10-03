@@ -1,9 +1,10 @@
 #pragma once
 #include "const.h"
 
-const std::map<std::string, std::map<std::string, std::string> > DISPLAY_TYPE_MAP = {
+const std::map<std::string, std::map<std::string, std::string>> DISPLAY_TYPE_MAP = {
     {
-        "Armor", {
+        "Armor",
+        {
             {"Helm", "Head Armor"},
             {"Shoulders", "Shoulder Armor"},
             {"Coat", "Chest Armor"},
@@ -13,7 +14,8 @@ const std::map<std::string, std::map<std::string, std::string> > DISPLAY_TYPE_MA
         }
     },
     {
-        "CraftingMaterial", {{"", "Crafting Material"}}
+        "CraftingMaterial",
+        {{"", "Crafting Material"}}
     }
 };
 
