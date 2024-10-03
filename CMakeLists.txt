@@ -70,3 +70,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE $ENV{OPENSSL_INCLUDE_DIR})
 
 # link sqlite3 static
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlite/sqlite3.lib)
+
+add_subdirectory(MockStandalone)
+
+add_custom_command(TARGET Finder POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:Finder>
+        "$<TARGET_FILE_DIR:MockStandalone>"
+)
