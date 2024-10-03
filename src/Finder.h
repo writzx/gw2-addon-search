@@ -8,11 +8,20 @@ typedef void * (*LOAD_REMOTE_TEXTURE)(const char *identifier, const char *url);
 
 typedef void * (*LOAD_RESOURCE_TEXTURE)(const char *identifier, int resourceId);
 
+struct ItemSection {
+    std::string label;
+    std::vector<Item *> items;
+
+    // top + header_height + section_height (header_height is same for all sections)
+    float top = 0;
+    float items_area_height = 0;
+};
+
 struct FinderState {
     char query[256];
     char key_buffer[256];
 
-    std::map<std::string, std::vector<Item>> items = {};
+    std::map<std::string, ItemSection> item_sections = {};
 
     bool needs_refresh;
     bool can_manual_refresh;

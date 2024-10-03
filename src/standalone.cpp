@@ -54,7 +54,7 @@ void AddonLoadStandalone(
     void *texture_loader,
     const char *config_dir
 ) {
-    const auto account_id = "AriK.3481";
+    const auto account_id = "AriKOnFire.2581";
 
     const auto config_path = std::filesystem::path(config_dir);
 
