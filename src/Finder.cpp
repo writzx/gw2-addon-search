@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "imgui_helper.h"
+#include "imgui_virtual_list.h"
 #include <resource.h>
 
 void *Finder::LoadRemoteTexture(const char *identifier, const char *url) const {
@@ -79,6 +80,175 @@ void Finder::tick() noexcept {
     }
 }
 
+void Finder::draw_single_search_result(Item *item) const {
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    ImVec2 savedCursor;
+
+    void *texture = this->LoadRemoteTexture(
+        std::format("ITEM_TEX_{}", item->id).c_str(),
+        item->icon.c_str()
+    );
+    ImGui::Image(texture, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
+
+    auto minPoint = ImGui::GetItemRectMin();
+    auto maxPoint = ImGui::GetItemRectMax();
+
+    std::string rarity = item->rarity;
+
+    auto hovered = ImGui::IsItemHovered();
+    auto &rarity_color = BORDER_COLORS.at(rarity);
+    auto &rarity_color_hover = BORDER_COLORS_HOVER.at(rarity);
+
+    draw_list->AddRect(
+        minPoint,
+        maxPoint,
+        ImGui::ColorConvertFloat4ToU32(
+            hovered ? rarity_color_hover : rarity_color),
+        0.0f,
+        0,
+        BORDER_WIDTH
+    );
+
+    const auto count = item->count_or_charges();
+
+    if (!count.empty()) {
+        savedCursor = ImGui::GetCursorPos();
+
+        const auto textSize = ImGui::CalcTextSize(count.c_str());
+
+        ImGui::SetCursorScreenPos(ImVec2(maxPoint.x - textSize.x - 2.0f, minPoint.y));
+
+        ImGui::Text(count.c_str());
+
+        ImGui::SetCursorPos(savedCursor);
+    }
+#pragma region item tooltip
+    if (hovered) {
+        ImGui::SetNextWindowSizeConstraints(
+            ImVec2(FLT_MIN, FLT_MIN),
+            ImVec2(300.0f, FLT_MAX));
+
+        ImGui::BeginTooltip();
+
+        ImDrawList *tooltipDrawList = ImGui::GetWindowDrawList();
+
+        ImGui::Image(texture, ImVec2(TOOLTIP_ICON_SIZE, TOOLTIP_ICON_SIZE));
+
+        minPoint = ImGui::GetItemRectMin();
+        maxPoint = ImGui::GetItemRectMax();
+
+        tooltipDrawList->AddRect(
+            minPoint,
+            maxPoint,
+            IM_COL32(255, 255, 255, 255),
+            0.0f,
+            0,
+            BORDER_WIDTH
+        );
+        ImGui::SameLine();
+
+        savedCursor = ImGui::GetCursorPos();
+
+        const auto titleSize = ImGui::CalcTextSize(item->display_name().c_str());
+
+        ImGui::SetCursorPosY(
+            savedCursor.y + (maxPoint.y - minPoint.y - titleSize.y) / 2);
+
+        ImGui::TextColored(rarity_color, item->display_name().c_str());
+
+        ImGuiExtras::TextWrapped(item->clean_description(), 300.0f);
+
+        ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+        ImGuiExtras::Text(item->display_type());
+        ImGuiExtras::Text(item->required_level());
+        ImGuiExtras::Text(item->display_binding());
+
+        if (item->vendor_value > 0) {
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
+
+            const float textHeight = ImGui::CalcTextSize("m").y;
+
+            int copper = item->vendor_value * item->count;
+            int gold = copper / 10000;
+
+            copper %= 10000;
+            int silver = copper / 100;
+
+            copper %= 100;
+
+            savedCursor = ImGui::GetCursorPos();
+
+            if (gold > 0) {
+                ImGui::TextColored(COLOR_CURRENCY_GOLD,
+                                   std::format("{}", gold).c_str());
+                ImGui::SameLine();
+
+                void *gold_texture = this->LoadResourceTexture("gold", GOLD_PNG);
+
+                ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+                ImGui::Image(gold_texture,
+                             ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+                ImGui::SameLine();
+                ImGui::SetCursorPosY(savedCursor.y);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(1.0f, 0.f));
+                ImGui::PopStyleVar();
+
+                ImGui::SameLine();
+            }
+
+            if (silver > 0 || gold > 0) {
+                ImGui::TextColored(COLOR_CURRENCY_SILVER,
+                                   std::format("{}", silver).c_str());
+                ImGui::SameLine();
+
+                void *silver_texture = this->LoadResourceTexture("silver", SILVER_PNG);
+
+                ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+                ImGui::Image(silver_texture,
+                             ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+                ImGui::SameLine();
+                ImGui::SetCursorPosY(savedCursor.y);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(1.0f, 0.f));
+                ImGui::PopStyleVar();
+
+                ImGui::SameLine();
+            }
+
+            if (copper > 0 || silver > 0 || gold > 0) {
+                ImGui::TextColored(COLOR_CURRENCY_COPPER,
+                                   std::format("{}", copper).c_str());
+                ImGui::SameLine();
+
+                void *copper_texture = this->LoadResourceTexture("copper", COPPER_PNG);
+
+                ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+                ImGui::Image(copper_texture,
+                             ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+                ImGui::SameLine();
+
+                ImGui::SetCursorPosY(savedCursor.y);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(1.0f, 0.f));
+                ImGui::PopStyleVar();
+            }
+
+            ImGui::PopStyleVar();
+        }
+
+        ImGui::EndTooltip();
+    }
+#pragma endregion
+}
+
 void Finder::Render() {
     ImGuiIO &io = ImGui::GetIO();
 
@@ -89,8 +259,6 @@ void Finder::Render() {
     auto window_padding = style.WindowPadding;
     auto item_spacing = style.ItemSpacing;
     auto window_size = ImGui::GetContentRegionAvail();
-
-    auto grid_item_size_with_spacing = GRID_ITEM_SIZE + item_spacing.y;
 
     if (this->store != nullptr) {
         this->tick();
@@ -106,7 +274,10 @@ void Finder::Render() {
     ImGui::SetNextWindowSizeConstraints(ImVec2(420.0f, 300.0f), ImVec2(FLT_MAX, FLT_MAX));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    if (ImGui::Begin("Finder", &this->is_shown)) {
+    const auto finder = ImGui::Begin("Finder", &this->is_shown);
+    ImGui::PopStyleVar();
+
+    if (finder) {
         const float search_bar_height = REFRESH_BUTTON_SIZE + window_padding.y * 2;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, window_padding);
         auto header_area = ImGui::BeginChild(
@@ -221,319 +392,103 @@ void Finder::Render() {
 
                 if (doSearch) {
                     helper::str_trim(this->state->query);
-                    if (strlen(this->state->query) > 2) {
-                        this->state->item_sections.clear();
+                    this->state->item_sections.clear();
 
-                        items.clear();
-                        // todo move this to a thread
-                        this->store->search(this->state->query, items);
+                    items.clear();
+                    this->state->can_show_results = false;
 
-                        for (auto &item: items) {
-                            if (!this->state->item_sections.contains(item.endpoint_path)) {
-                                this->state->item_sections[item.endpoint_path] = {
-                                    .label = item.endpoint,
-                                    .items = {},
-                                };
+                    std::jthread(
+                        [&] {
+                            this->store->search(this->state->query, items);
+
+                            for (auto &item: items) {
+                                if (!this->state->item_sections.contains(item.endpoint_path)) {
+                                    this->state->item_sections[item.endpoint_path] = {};
+                                }
+                                this->state->item_sections[item.endpoint_path].push_back(&item);
                             }
-                            this->state->item_sections[item.endpoint_path].items.push_back(&item);
+                            this->state->can_show_results = true;
                         }
-
-                        float top = 0;
-
-                        for (auto &[ep, section]: this->state->item_sections) {
-                            section.top = top;
-                            section.items_area_height =
-                                    std::ceil(
-                                        static_cast<float>(section.items.size())
-                                        / static_cast<float>(grid_col_count)
-                                    ) * grid_item_size_with_spacing + item_spacing.y;
-
-                            // add header height
-                            top += ImGui::GetTextLineHeightWithSpacing(); // todo maybe customize this anyway
-                            // add items area height
-                            top += section.items_area_height;
-                        }
-                    }
+                    ).detach();
                 }
             }
         }
         ImGui::EndChild();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, window_padding);
-        auto search_result_area = ImGui::BeginChild(
-            "##search_result_area",
-            ImVec2(0, 0),
-            false,
-            ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysUseWindowPadding
-        );
-        ImGui::PopStyleVar();
-
-        if (search_result_area) {
-            float scroll_y = ImGui::GetScrollY();
-
-            auto ep_header_height = ImGui::GetTextLineHeightWithSpacing();
-
-            auto upper_dummy = false;
-            auto lower_dummy = false;
-
-            // search result area drawlist
-            ImDrawList *draw_list = ImGui::GetWindowDrawList();
-            for (const auto &[ep, section]: this->state->item_sections) {
-                // ignore empty endpoints completely
-                // since we don't show any items from these
-                if (section.items.empty()) {
-                    continue;
-                }
-
-                if (section.top > scroll_y + window_size.y) {
-                    // section is already below the visible area
-                    // don't render anymore
-                    break;
-                }
-
-                // only draw header if it is at least partially in the visible area
-                if (section.top + ep_header_height > scroll_y) {
-                    if (!upper_dummy) {
-                        // place upper dummy
-                        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-                        ImGui::Dummy(ImVec2(window_size.x, section.top));
-                        ImGui::PopStyleVar();
-
-                        upper_dummy = true;
-                    }
-
-                    // render the header
-                    ImGui::CollapsingHeader(section.label.c_str(), ImGuiTreeNodeFlags_Leaf);
-                }
-
-                auto items_area_top = section.top + ep_header_height;
-                auto items_area_bottom = section.top + ep_header_height + section.items_area_height;
-
-                auto hidden_top = scroll_y - items_area_top;
-                auto hidden_bottom = items_area_bottom - scroll_y + window_size.y;
-
-                int first_visible_row = std::floor((
-                                                       std::max(items_area_top, scroll_y) - items_area_top
-                                                   ) / grid_item_size_with_spacing);
-                int last_visible_row = std::ceil((
-                                                     std::min(items_area_bottom, scroll_y + window_size.y) -
-                                                     items_area_top
-                                                 ) / grid_item_size_with_spacing);
-
-                auto table_top = items_area_top
-                                 + static_cast<float>(first_visible_row - 1)
-                                 * grid_item_size_with_spacing;
-
-                if (!upper_dummy && hidden_top >= 0) {
-                    // place upper dummy
-                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-                    ImGui::Dummy(ImVec2(window_size.x, table_top));
-                    ImGui::PopStyleVar();
-
-                    upper_dummy = true;
-                }
-
-                ImGui::PushItemWidth(window_size.x);
-                if (ImGui::BeginTable(std::format("##table_{}", ep).c_str(), grid_col_count)) {
-                    for (int col = 0; col < grid_col_count; col++) {
-                        ImGui::TableSetupColumn(
-                            std::format("##col_{}_{}", ep, col).c_str(),
-                            ImGuiTableColumnFlags_WidthFixed,
-                            GRID_ITEM_SIZE
-                        );
-                    }
-
-                    for (
-                        int i = std::max((first_visible_row - 1) * grid_col_count, 0);
-                        i <= std::min(last_visible_row * grid_col_count, static_cast<int>(section.items.size()) - 1);
-                        i++
-                    ) {
-                        auto result = section.items[i];
-                        void *texture = this->LoadRemoteTexture(
-                            std::format("ITEM_TEX_{}", result->id).c_str(),
-                            result->icon.c_str()
-                        );
-
-                        ImGui::TableNextColumn();
-                        ImGui::Image(texture, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
-
-                        minPoint = ImGui::GetItemRectMin();
-                        maxPoint = ImGui::GetItemRectMax();
-
-                        std::string rarity = result->rarity;
-
-                        hovered = ImGui::IsItemHovered();
-                        auto &rarity_color = BORDER_COLORS.at(rarity);
-                        auto &rarity_color_hover = BORDER_COLORS_HOVER.at(rarity);
-
-                        draw_list->AddRect(
-                            minPoint,
-                            maxPoint,
-                            ImGui::ColorConvertFloat4ToU32(
-                                hovered ? rarity_color_hover : rarity_color),
-                            0.0f,
-                            0,
-                            BORDER_WIDTH
-                        );
-
-                        auto count = result->count_or_charges();
-
-                        if (!count.empty()) {
-                            savedCursor = ImGui::GetCursorPos();
-
-                            const auto textSize = ImGui::CalcTextSize(count.c_str());
-
-                            ImGui::SetCursorScreenPos(
-                                ImVec2(maxPoint.x - textSize.x - 3.0f, maxPoint.y - textSize.y - 2.0f));
-
-                            ImGui::Text(count.c_str());
-
-                            ImGui::SetCursorPos(savedCursor);
-                        }
-#pragma region item tooltip
-                        if (hovered) {
-                            ImGui::SetNextWindowSizeConstraints(
-                                ImVec2(FLT_MIN, FLT_MIN),
-                                ImVec2(300.0f, FLT_MAX));
-
-                            ImGui::BeginTooltip();
-
-                            ImDrawList *tooltipDrawList = ImGui::GetWindowDrawList();
-
-                            ImGui::Image(texture, ImVec2(TOOLTIP_ICON_SIZE, TOOLTIP_ICON_SIZE));
-
-                            minPoint = ImGui::GetItemRectMin();
-                            maxPoint = ImGui::GetItemRectMax();
-
-                            tooltipDrawList->AddRect(
-                                minPoint,
-                                maxPoint,
-                                IM_COL32(255, 255, 255, 255),
-                                0.0f,
-                                0,
-                                BORDER_WIDTH
-                            );
-                            ImGui::SameLine();
-
-                            savedCursor = ImGui::GetCursorPos();
-
-                            const auto titleSize = ImGui::CalcTextSize(result->display_name().c_str());
-
-                            ImGui::SetCursorPosY(
-                                savedCursor.y + (maxPoint.y - minPoint.y - titleSize.y) / 2);
-
-                            ImGui::TextColored(rarity_color, result->display_name().c_str());
-
-                            ImGuiExtras::TextWrapped(result->clean_description(), 300.0f);
-
-                            ImGui::Dummy(ImVec2(0.0f, 8.0f));
-
-                            ImGuiExtras::Text(result->display_type());
-                            ImGuiExtras::Text(result->required_level());
-                            ImGuiExtras::Text(result->display_binding());
-
-                            if (result->vendor_value > 0) {
-                                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
-
-                                const float textHeight = ImGui::CalcTextSize("m").y;
-
-                                int copper = result->vendor_value * result->count;
-                                int gold = copper / 10000;
-
-                                copper %= 10000;
-                                int silver = copper / 100;
-
-                                copper %= 100;
-
-                                savedCursor = ImGui::GetCursorPos();
-
-                                if (gold > 0) {
-                                    ImGui::TextColored(COLOR_CURRENCY_GOLD,
-                                                       std::format("{}", gold).c_str());
-                                    ImGui::SameLine();
-
-                                    void *gold_texture = this->LoadResourceTexture("gold", GOLD_PNG);
-
-                                    ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
-                                    ImGui::Image(gold_texture,
-                                                 ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
-
-                                    ImGui::SameLine();
-                                    ImGui::SetCursorPosY(savedCursor.y);
-
-                                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-                                    ImGui::Dummy(ImVec2(1.0f, 0.f));
-                                    ImGui::PopStyleVar();
-
-                                    ImGui::SameLine();
-                                }
-
-                                if (silver > 0 || gold > 0) {
-                                    ImGui::TextColored(COLOR_CURRENCY_SILVER,
-                                                       std::format("{}", silver).c_str());
-                                    ImGui::SameLine();
-
-                                    void *silver_texture = this->LoadResourceTexture("silver", SILVER_PNG);
-
-                                    ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
-                                    ImGui::Image(silver_texture,
-                                                 ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
-
-                                    ImGui::SameLine();
-                                    ImGui::SetCursorPosY(savedCursor.y);
-
-                                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-                                    ImGui::Dummy(ImVec2(1.0f, 0.f));
-                                    ImGui::PopStyleVar();
-
-                                    ImGui::SameLine();
-                                }
-
-                                if (copper > 0 || silver > 0 || gold > 0) {
-                                    ImGui::TextColored(COLOR_CURRENCY_COPPER,
-                                                       std::format("{}", copper).c_str());
-                                    ImGui::SameLine();
-
-                                    void *copper_texture = this->LoadResourceTexture("copper", COPPER_PNG);
-
-                                    ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
-                                    ImGui::Image(copper_texture,
-                                                 ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
-
-                                    ImGui::SameLine();
-
-                                    ImGui::SetCursorPosY(savedCursor.y);
-
-                                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-                                    ImGui::Dummy(ImVec2(1.0f, 0.f));
-                                    ImGui::PopStyleVar();
-                                }
-
-                                ImGui::PopStyleVar();
+        if (this->state->col_count != grid_col_count && this->state->can_show_results) {
+            this->state->can_show_results = false;
+            this->state->col_count = grid_col_count;
+            std::jthread(
+                [&] {
+                    this->state->item_rows.clear();
+
+                    for (auto &items: this->state->item_sections | std::views::values) {
+                        this->state->item_rows.push_back({
+                            .label = items[0]->endpoint,
+                            .items = {}
+                        });
+
+                        for (int i = 0; i < items.size(); i += this->state->col_count) {
+                            auto start = items.begin() + i;
+                            const auto end = i + this->state->col_count < items.size()
+                                                 ? start + this->state->col_count
+                                                 : items.end();
+
+                            if (const std::vector<Item *> sub_items = {start, end}; !sub_items.empty()) {
+                                this->state->item_rows.push_back({
+                                    .label = "",
+                                    .items = sub_items
+                                });
                             }
-
-                            ImGui::EndTooltip();
                         }
-#pragma endregion
                     }
-                }
-                ImGui::PopItemWidth();
-                ImGui::EndTable();
 
-                if (!lower_dummy && hidden_bottom >= 0) {
-                    // place lower dummy
-                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-                    ImGui::Dummy(ImVec2(
-                        window_size.x,
-                        items_area_top + static_cast<float>(last_visible_row) * grid_item_size_with_spacing
-                    ));
-                    ImGui::PopStyleVar();
-
-                    lower_dummy = true;
+                    this->state->can_show_results = true;
                 }
-            }
+            ).detach();
         }
-        ImGui::EndChild();
+
+        if (this->state->can_show_results) {
+            ImGui::VirtualListV(
+                "##search_items_area",
+                this->state->item_rows.size(),
+                [&](const int i) {
+                    if (const auto row = state->item_rows[i]; row.label.empty()) {
+                        return GRID_ITEM_SIZE;
+                    }
+                    return ImGui::GetTextLineHeightWithSpacing();
+                },
+                [&](const int i) {
+                    const auto row = state->item_rows[i];
+                    if (row.label.empty()) {
+                        const auto table = ImGui::BeginTable(
+                            std::format("##table_{}", i).c_str(),
+                            grid_col_count
+                        );
+
+                        if (table) {
+                            for (int col = 0; col < grid_col_count; col++) {
+                                ImGui::TableSetupColumn(
+                                    std::format("##col_{}", col).c_str(),
+                                    ImGuiTableColumnFlags_WidthFixed,
+                                    GRID_ITEM_SIZE
+                                );
+                            }
+                            for (auto &item: row.items) {
+                                ImGui::TableNextColumn();
+                                draw_single_search_result(item);
+                            }
+                            ImGui::EndTable();
+                        }
+
+                        return GRID_ITEM_SIZE;
+                    }
+                    ImGui::CollapsingHeader(row.label.c_str(), ImGuiTreeNodeFlags_Leaf);
+                    return ImGui::GetTextLineHeightWithSpacing();
+                },
+                8.0f
+            );
+        }
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, FLT_MIN), ImVec2(400.0f, FLT_MAX));
 
@@ -576,7 +531,6 @@ void Finder::Render() {
             ImGui::EndPopup();
         }
     }
-    ImGui::PopStyleVar();
     ImGui::End();
 }
 

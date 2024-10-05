@@ -8,24 +8,24 @@ typedef void * (*LOAD_REMOTE_TEXTURE)(const char *identifier, const char *url);
 
 typedef void * (*LOAD_RESOURCE_TEXTURE)(const char *identifier, int resourceId);
 
-struct ItemSection {
+struct ItemRow {
     std::string label;
     std::vector<Item *> items;
-
-    // top + header_height + section_height (header_height is same for all sections)
-    float top = 0;
-    float items_area_height = 0;
 };
 
 struct FinderState {
     char query[256];
     char key_buffer[256];
 
-    std::map<std::string, ItemSection> item_sections = {};
+    std::map<std::string, std::vector<Item *>> item_sections = {};
+    std::vector<ItemRow> item_rows = {};
 
     bool needs_refresh;
     bool can_manual_refresh;
     bool can_search;
+
+    bool can_show_results;
+    int col_count;
 
     bool api_window;
 
@@ -37,6 +37,9 @@ struct FinderState {
         this->needs_refresh = true;
         this->can_manual_refresh = true;
         this->can_search = true;
+
+        this->can_show_results = false;
+        this->col_count = 0;
 
         this->api_window = false;
     }
@@ -68,6 +71,8 @@ class Finder {
     void tick() noexcept;
 
     void refresh_store() const noexcept;
+
+    void draw_single_search_result(Item *item) const;
 
     void init_or_update_client() {
         const std::string api_key = this->config->get_api_key(this->id);
