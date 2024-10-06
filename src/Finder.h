@@ -13,9 +13,23 @@ struct ItemRow {
     std::vector<Item *> items;
 };
 
+struct SettingsState {
+    char api_key_buffer[256];
+    int min_search_length;
+
+    bool pending_save;
+
+    // NOLINTNEXTLINE(*-pro-type-member-init)
+    SettingsState() {
+        std::memset(&this->api_key_buffer, 0, sizeof(this->api_key_buffer));
+        this->min_search_length = 0;
+
+        this->pending_save = false;
+    }
+};
+
 struct FinderState {
     char query[256];
-    char key_buffer[256];
 
     std::map<std::string, std::vector<Item *>> item_sections = {};
     std::vector<ItemRow> item_rows = {};
@@ -24,30 +38,29 @@ struct FinderState {
     bool can_manual_refresh;
     bool can_search;
 
-    bool can_show_results;
     int col_count;
-
-    bool api_window;
 
     // NOLINTNEXTLINE(*-pro-type-member-init)
     FinderState() {
         std::memset(&this->query, 0, sizeof(this->query));
-        std::memset(&this->key_buffer, 0, sizeof(this->key_buffer));
 
         this->needs_refresh = true;
         this->can_manual_refresh = true;
         this->can_search = true;
 
-        this->can_show_results = false;
         this->col_count = 0;
-
-        this->api_window = false;
     }
 };
 
 
 class Finder {
+    std::string last_search = "\t";
+
     bool is_shown;
+    bool is_settings_shown;
+
+    bool searching_or_calculating;
+    bool calculate_search_rows;
 
     Config *config;
 
@@ -85,12 +98,13 @@ class Finder {
                 this->client->update_token(api_key);
             }
 
-            strcpy_s(this->state->key_buffer, api_key.c_str());
+            strcpy_s(this->settings_state->api_key_buffer, api_key.c_str());
         }
     }
 
 public:
     FinderState *state;
+    SettingsState *settings_state;
 
     void Show();
 
@@ -102,6 +116,8 @@ public:
 
     void Render();
 
+    void RenderSettingsWindow();
+
     void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
 
     void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
@@ -110,9 +126,15 @@ public:
         this->id = id;
         this->dir = dir;
 
-        this->is_shown = false;
-
         this->state = new FinderState();
+        this->settings_state = new SettingsState();
+
+        this->is_shown = false;
+        this->is_settings_shown = false;
+
+        this->searching_or_calculating = false;
+        this->calculate_search_rows = false;
+
         this->config = new Config(dir / CONFIG_JSON_FILENAME);
 
         init_or_update_client();

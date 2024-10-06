@@ -8,16 +8,22 @@ using json = nlohmann::json;
 using chrono = std::chrono::utc_clock;
 using namespace std::chrono_literals;
 
+const std::string ADDON_NAME = "Finder";
+
 constexpr int MAX_CONNECTIONS = 6;
 
 constexpr chrono::duration UI_TICK_INTERVAL = 5s;
 constexpr chrono::duration AUTO_REFRESH_INTERVAL = 2min;
 constexpr chrono::duration MANUAL_REFRESH_INTERVAL = 1min;
 
+constexpr float SEARCH_AREA_BOTTOM_PADDING = 64.0f;
+
 constexpr float BORDER_WIDTH = 1.0f;
 constexpr float GRID_ITEM_SIZE = 48.0f;
+constexpr float GRID_ITEM_SPACING = 4.0f;
 constexpr float TOOLTIP_ICON_SIZE = 32.0f;
 constexpr float CURRENCY_ICON_SIZE = 15.0f;
+
 constexpr float REFRESH_BUTTON_SIZE = 24.0f;
 constexpr float REFRESH_SPINNER_RADIUS = 8.0f;
 constexpr float REFRESH_SPINNER_THICKNESS = 2.0f;
@@ -52,13 +58,13 @@ const std::map<std::string, ImVec4> BORDER_COLORS_HOVER = {
     {"Legendary", ImVec4(76 / 255.0f, 19 / 255.0f, 157 / 255.0f, 172 / 255.0f)},
 };
 
-const std::string ADDON_NAME = "Finder";
 const std::string ITEMS_DB_FILENAME = "items_en.db";
 const std::string STORED_DB_FILENAME = "stored_items.db";
 const std::string STORED_DB_FILENAME_TEMP = "stored_items_temp.db";
 const std::string CONFIG_JSON_FILENAME = "config.json";
 
 const std::string JSON_KEY_API_KEYS = "api_keys";
+const std::string JSON_KEY_MIN_SEARCH = "min_search_length";
 
 const std::string API_HOST_BASE = "https://api.guildwars2.com";
 const std::string API_VERSION = "v2";
@@ -66,5 +72,10 @@ const std::string API_VERSION = "v2";
 const std::string RENDER_HOST_BASE = "https://render.guildwars2.com";
 
 const std::map<std::string, int> ENDPOINT_SORT_ORDER = {
-    {"/account/bank", 1}, {"/account/inventory", 2}, {"/character", 3}, {"/account/materials", 4}
+    {"/account/bank", 1},
+    {"/account/inventory", 2},
+    {"/character", 3},
+    {"/account/materials", 4}
 };
+
+const std::string CONFIG_POPUP_NAME = "Finder Settings";

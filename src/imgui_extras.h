@@ -3,7 +3,24 @@
 #include <imgui/imgui_internal.h>
 
 namespace ImGuiExtras {
-    inline void BeginDisable(bool allowHover = false) {
+    static std::string LeftAlignedLabel(const char *label) {
+        const float width = ImGui::CalcItemWidth();
+
+        const float x = ImGui::GetCursorPosX();
+        ImGui::Text(label);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(x + width * 0.5f + ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::SetNextItemWidth(-1);
+
+        std::string labelID = "##";
+        labelID += label;
+
+        return labelID;
+    }
+
+    inline void BeginDisable(const bool disable = true, const bool allowHover = false) {
+        if (!disable) { return; }
+
         if (allowHover) {
             ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
         } else {
@@ -12,7 +29,9 @@ namespace ImGuiExtras {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
     }
 
-    inline void EndDisable() {
+    inline void EndDisable(const bool disable = true) {
+        if (!disable) { return; }
+
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();
     }
@@ -55,10 +74,10 @@ namespace ImGuiExtras {
         const int start = static_cast<int>(abs(ImSin(g.Time * 1.8f) * (num_segments - 5)));
 
         const float a_min = IM_PI * 2.0f * static_cast<float>(start) / static_cast<float>(num_segments);
-        constexpr float a_max = IM_PI * 2.0f * (static_cast<float>(num_segments) - 3)
-                                / static_cast<float>(num_segments);
+        constexpr float a_max = IM_PI * 2.0f
+                                * (static_cast<float>(num_segments) - 3) / static_cast<float>(num_segments);
 
-        const ImVec2 centre = ImVec2(pos.x + radius, pos.y + radius + style.FramePadding.y);
+        const auto centre = ImVec2(pos.x + radius, pos.y + radius + style.FramePadding.y);
 
         for (int i = 0; i < num_segments; i++) {
             const float a = a_min + (static_cast<float>(i) / static_cast<float>(num_segments)) * (a_max - a_min);

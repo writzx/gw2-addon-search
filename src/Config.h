@@ -12,6 +12,10 @@ public:
 
     void set_api_key(const std::string &id, const std::string &api_key);
 
+    int get_min_search_length();
+
+    void set_min_search_length(int len);
+
     void load();
 
     void save() const;

@@ -194,7 +194,7 @@ extern "C" __declspec(dllexport) AddonDefinition *GetAddonDef() {
     AddonDef.Name = ADDON_NAME.c_str();
     AddonDef.Version.Major = 0;
     AddonDef.Version.Minor = 0;
-    AddonDef.Version.Build = 1;
+    AddonDef.Version.Build = 3;
     AddonDef.Version.Revision = 0;
     AddonDef.Author = "ArikOnFire.2581";
     AddonDef.Description = "Search for items in your account, save search queries etc.";
@@ -203,7 +203,7 @@ extern "C" __declspec(dllexport) AddonDefinition *GetAddonDef() {
     AddonDef.Flags = EAddonFlags_None;
 
     AddonDef.Provider = EUpdateProvider_GitHub;
-    AddonDef.UpdateLink = "https://github.com/writzx/gw2-addon-Search";
+    AddonDef.UpdateLink = "https://github.com/writzx/gw2-addon-search";
 
     return &AddonDef;
 }

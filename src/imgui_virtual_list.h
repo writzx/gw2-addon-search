@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <imgui/imgui.h>
 
 typedef float (*MEASURE_ITEM)(int index);
@@ -19,7 +20,6 @@ namespace ImGui {
         }
         const auto style = GetStyle();
 
-        PushStyleColor(ImGuiCol_ChildBg, style.Colors[ImGuiCol_FrameBg]);
         PushStyleVar(ImGuiStyleVar_ChildRounding, style.FrameRounding);
         PushStyleVar(ImGuiStyleVar_WindowPadding, style.FramePadding);
 
@@ -31,7 +31,6 @@ namespace ImGui {
         );
 
         PopStyleVar(2);
-        PopStyleColor();
 
         if (outer_window) {
             const auto window_size = GetContentRegionAvail();
@@ -39,7 +38,7 @@ namespace ImGui {
             float total_height = 0;
 
             float render_top = 0;
-            int first = -1, last = -1;
+            int first = -1, last = static_cast<int>(count) - 1;
 
             for (auto i = 0; i < count; i++) {
                 const auto item_height = measure_item(i) + gap;
@@ -50,7 +49,7 @@ namespace ImGui {
                     render_top = total_height;
                 }
 
-                if (final_height >= scroll_y + window_size.y && last == -1) {
+                if (final_height >= scroll_y + window_size.y && last == count - 1) {
                     last = i;
                 }
 
