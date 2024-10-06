@@ -2,7 +2,8 @@
 #include <imgui/imgui.h>
 #include <thread>
 
-#include "imgui_helper.h"
+#include "imgui_extras.h"
+#include "imgui_virtual_list.h"
 #include <resource.h>
 
 void *Finder::LoadRemoteTexture(const char *identifier, const char *url) const {
@@ -62,7 +63,7 @@ void Finder::tick() noexcept {
 
     // ignore update before ui tick interval
     if (
-        const auto delta_time = this->last_tick.has_value() ? (tick - this->last_tick.value()) : 5min;
+        const auto delta_time = this->last_tick.has_value() ? tick - this->last_tick.value() : 5min;
         delta_time <= UI_TICK_INTERVAL
     ) {
         return;
@@ -75,18 +76,180 @@ void Finder::tick() noexcept {
     this->state->can_search = this->store->can_search();
 
     if (this->state->needs_refresh) {
-        refresh_store();
+        // refresh_store();
     }
 }
 
+void Finder::draw_single_search_result(Item *item) const {
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    ImVec2 savedCursor;
+
+    void *texture = this->LoadRemoteTexture(
+        std::format("ITEM_TEX_{}", item->id).c_str(),
+        item->icon.c_str()
+    );
+    ImGui::Image(texture, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
+
+    auto minPoint = ImGui::GetItemRectMin();
+    auto maxPoint = ImGui::GetItemRectMax();
+
+    std::string rarity = item->rarity;
+
+    const auto hovered = ImGui::IsItemHovered();
+    auto &rarity_color = BORDER_COLORS.at(rarity);
+    auto &rarity_color_hover = BORDER_COLORS_HOVER.at(rarity);
+
+    draw_list->AddRect(
+        minPoint,
+        maxPoint,
+        ImGui::ColorConvertFloat4ToU32(
+            hovered ? rarity_color_hover : rarity_color),
+        0.0f,
+        0,
+        BORDER_WIDTH
+    );
+
+    const auto count = item->count_or_charges();
+
+    if (!count.empty()) {
+        savedCursor = ImGui::GetCursorPos();
+
+        const auto textSize = ImGui::CalcTextSize(count.c_str());
+
+        ImGui::SetCursorScreenPos(ImVec2(maxPoint.x - textSize.x - 2.0f, minPoint.y));
+
+        ImGui::Text(count.c_str());
+
+        ImGui::SetCursorPos(savedCursor);
+    }
+#pragma region item tooltip
+    if (hovered) {
+        ImGui::SetNextWindowSizeConstraints(
+            ImVec2(FLT_MIN, FLT_MIN),
+            ImVec2(300.0f, FLT_MAX));
+
+        ImGui::BeginTooltip();
+
+        ImDrawList *tooltipDrawList = ImGui::GetWindowDrawList();
+
+        ImGui::Image(texture, ImVec2(TOOLTIP_ICON_SIZE, TOOLTIP_ICON_SIZE));
+
+        minPoint = ImGui::GetItemRectMin();
+        maxPoint = ImGui::GetItemRectMax();
+
+        tooltipDrawList->AddRect(
+            minPoint,
+            maxPoint,
+            IM_COL32(255, 255, 255, 255),
+            0.0f,
+            0,
+            BORDER_WIDTH
+        );
+        ImGui::SameLine();
+
+        savedCursor = ImGui::GetCursorPos();
+
+        const auto titleSize = ImGui::CalcTextSize(item->display_name().c_str());
+
+        ImGui::SetCursorPosY(
+            savedCursor.y + (maxPoint.y - minPoint.y - titleSize.y) / 2);
+
+        ImGui::TextColored(rarity_color, item->display_name().c_str());
+
+        ImGuiExtras::TextWrapped(item->clean_description(), 300.0f);
+
+        ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+        ImGuiExtras::Text(item->display_type());
+        ImGuiExtras::Text(item->required_level());
+        ImGuiExtras::Text(item->display_binding());
+
+        if (item->vendor_value > 0) {
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
+
+            const float textHeight = ImGui::CalcTextSize("m").y;
+
+            int copper = item->vendor_value * item->count;
+            int gold = copper / 10000;
+
+            copper %= 10000;
+            int silver = copper / 100;
+
+            copper %= 100;
+
+            savedCursor = ImGui::GetCursorPos();
+
+            if (gold > 0) {
+                ImGui::TextColored(COLOR_CURRENCY_GOLD,
+                                   std::format("{}", gold).c_str());
+                ImGui::SameLine();
+
+                void *gold_texture = this->LoadResourceTexture("gold", GOLD_PNG);
+
+                ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+                ImGui::Image(gold_texture,
+                             ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+                ImGui::SameLine();
+                ImGui::SetCursorPosY(savedCursor.y);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(1.0f, 0.f));
+                ImGui::PopStyleVar();
+
+                ImGui::SameLine();
+            }
+
+            if (silver > 0 || gold > 0) {
+                ImGui::TextColored(COLOR_CURRENCY_SILVER,
+                                   std::format("{}", silver).c_str());
+                ImGui::SameLine();
+
+                void *silver_texture = this->LoadResourceTexture("silver", SILVER_PNG);
+
+                ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+                ImGui::Image(silver_texture,
+                             ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+                ImGui::SameLine();
+                ImGui::SetCursorPosY(savedCursor.y);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(1.0f, 0.f));
+                ImGui::PopStyleVar();
+
+                ImGui::SameLine();
+            }
+
+            if (copper > 0 || silver > 0 || gold > 0) {
+                ImGui::TextColored(COLOR_CURRENCY_COPPER,
+                                   std::format("{}", copper).c_str());
+                ImGui::SameLine();
+
+                void *copper_texture = this->LoadResourceTexture("copper", COPPER_PNG);
+
+                ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
+                ImGui::Image(copper_texture,
+                             ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
+
+                ImGui::SameLine();
+
+                ImGui::SetCursorPosY(savedCursor.y);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(1.0f, 0.f));
+                ImGui::PopStyleVar();
+            }
+
+            ImGui::PopStyleVar();
+        }
+
+        ImGui::EndTooltip();
+    }
+#pragma endregion
+}
+
 void Finder::Render() {
-    ImVec2 savedCursor, minPoint, maxPoint;
-    bool hovered;
-    const ImVec2 padding = ImGui::GetStyle().FramePadding;
-    const ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
-
-    ImGuiIO &io = ImGui::GetIO();
-
     if (this->store != nullptr) {
         this->tick();
     }
@@ -97,331 +260,338 @@ void Finder::Render() {
 
     ImGui::SetNextWindowSizeConstraints(ImVec2(420.0f, 300.0f), ImVec2(FLT_MAX, FLT_MAX));
 
-    if (ImGui::Begin("Finder", &this->is_shown)) {
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    const auto finder = ImGui::Begin(ADDON_NAME.c_str(), &this->is_shown, ImGuiWindowFlags_NoCollapse);
+    ImGui::PopStyleVar();
 
-        if (this->store != nullptr && this->client != nullptr && this->store->refreshing) {
-            ImGuiExtras::BeginDisable();
-        }
+    if (finder) {
+        const auto &style = ImGui::GetStyle();
 
-        if (ImGui::Button("API", ImVec2(0, REFRESH_BUTTON_SIZE))) {
-            this->state->api_window = true;
-            ImGui::OpenPopup("API Key");
-        }
+        const auto window_size = ImGui::GetContentRegionAvail();
 
-        if (this->store != nullptr && this->client != nullptr && this->store->refreshing) {
-            ImGuiExtras::EndDisable();
-        }
+        const auto frame_padding = style.FramePadding;
+        const auto window_padding = style.WindowPadding;
+        const auto item_spacing = style.ItemSpacing;
 
-        ImGui::SameLine();
+        // account for item spacing when calculating number of columns
+        const int grid_col_count = static_cast<int>(
+            // exclude the cell padding from the last cell
+            // half the spacing because no other cell shares the edge
+            (window_size.x - GRID_ITEM_SPACING / 2)
+            / (GRID_ITEM_SIZE + GRID_ITEM_SPACING + BORDER_WIDTH)
+        );
+        const float search_bar_height = REFRESH_BUTTON_SIZE + window_padding.y * 2;
 
-        if (this->store == nullptr || this->client == nullptr) {
-            ImGui::Text("please add an api key");
-        } else {
-#pragma region refresh button
-            auto refreshBtn = false;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, window_padding);
 
-            const bool can_refresh = this->state->can_manual_refresh && !this->store->refreshing;
+        const auto header_area = ImGui::BeginChild(
+            "##header_area",
+            ImVec2(0, search_bar_height),
+            false,
+            ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysUseWindowPadding |
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+        );
 
-            if (!can_refresh) {
-                ImGuiExtras::BeginDisable(true);
+        ImGui::PopStyleVar();
+
+        if (header_area) {
+            ImGuiExtras::BeginDisable(this->store != nullptr && this->client != nullptr && this->store->refreshing);
+
+            if (ImGui::Button("API", ImVec2(0, REFRESH_BUTTON_SIZE))) {
+                this->is_settings_shown = true;
             }
 
-            savedCursor = ImGui::GetCursorScreenPos();
-            refreshBtn = ImGui::Button("##refresh", ImVec2(REFRESH_BUTTON_SIZE, REFRESH_BUTTON_SIZE));
+            ImGuiExtras::EndDisable(this->store != nullptr && this->client != nullptr && this->store->refreshing);
 
-            hovered = ImGui::IsItemHovered();
+            ImGui::SameLine();
 
-            const auto spinnerLocation = ImVec2(
-                savedCursor.x - REFRESH_SPINNER_RADIUS - padding.x + (REFRESH_BUTTON_SIZE * 0.5),
-                savedCursor.y - REFRESH_SPINNER_RADIUS - padding.y + (REFRESH_BUTTON_SIZE * 0.5)
-            );
-
-            ImGui::SetCursorScreenPos(spinnerLocation);
-
-            if (this->store->refreshing) {
-                ImGui::SetCursorScreenPos(ImVec2(spinnerLocation.x + padding.x, spinnerLocation.y));
-                ImGuiExtras::Spinner("##spinner", REFRESH_SPINNER_RADIUS, REFRESH_SPINNER_THICKNESS,
-                                     IM_COL32(220, 220, 220, 255));
+            if (this->store == nullptr || this->client == nullptr) {
+                ImGui::Text("please add an api key");
             } else {
-                void *refresh_texture = this->LoadResourceTexture("refresh", REFRESH_PNG);
+#pragma region refresh button
+                auto refreshBtn = false;
 
-                ImGui::Image(refresh_texture, ImVec2(REFRESH_BUTTON_SIZE, REFRESH_BUTTON_SIZE));
-            }
+                const bool can_refresh = this->state->can_manual_refresh && !this->store->refreshing;
 
-            if (!can_refresh) {
-                ImGuiExtras::EndDisable();
-            }
+                ImGuiExtras::BeginDisable(!can_refresh, true);
 
-            if (refreshBtn && can_refresh) {
-                refresh_store();
-            }
+                const ImVec2 savedCursor = ImGui::GetCursorScreenPos();
+                refreshBtn = ImGui::Button("##refresh", ImVec2(REFRESH_BUTTON_SIZE, REFRESH_BUTTON_SIZE));
+
+                const bool hovered = ImGui::IsItemHovered();
+
+                const auto spinnerLocation = savedCursor - frame_padding
+                                             - REFRESH_SPINNER_RADIUS + REFRESH_BUTTON_SIZE * 0.5;
+
+                ImGui::SetCursorScreenPos(spinnerLocation);
+
+                if (this->store->refreshing) {
+                    ImGui::SetCursorScreenPos(ImVec2(spinnerLocation.x + frame_padding.x, spinnerLocation.y));
+                    ImGuiExtras::Spinner(
+                        "##spinner",
+                        REFRESH_SPINNER_RADIUS,
+                        REFRESH_SPINNER_THICKNESS,
+                        IM_COL32(220, 220, 220, 255)
+                    );
+                } else {
+                    void *refresh_texture = this->LoadResourceTexture("refresh", REFRESH_PNG);
+
+                    ImGui::Image(refresh_texture, ImVec2(REFRESH_BUTTON_SIZE, REFRESH_BUTTON_SIZE));
+                }
+
+                ImGuiExtras::EndDisable(!can_refresh);
+
+                if (refreshBtn && can_refresh) {
+                    refresh_store();
+                }
 #pragma endregion
 
-            if (hovered) {
-                ImGui::SetNextWindowSizeConstraints(ImVec2(300.0f, FLT_MIN), ImVec2(300.0f, FLT_MAX));
+                if (hovered) {
+                    ImGui::SetNextWindowSizeConstraints(ImVec2(300.0f, FLT_MIN), ImVec2(300.0f, FLT_MAX));
 
-                ImGui::BeginTooltip();
+                    ImGui::BeginTooltip();
 
-                const auto last_updated = this->store->last_updated();
-                ImGui::TextWrapped(last_updated.has_value()
-                                       ? helper::datetime_tostring(last_updated.value()).c_str()
-                                       : "never");
+                    const auto last_updated = this->store->last_updated();
+                    ImGui::TextWrapped(
+                        last_updated.has_value()
+                            ? helper::datetime_tostring(last_updated.value()).c_str()
+                            : "never"
+                    );
 
-                ImGui::TextWrapped(this->store->status.c_str());
+                    ImGui::TextWrapped(this->store->status.c_str());
 
-                ImGui::EndTooltip();
-            }
-
-            ImGui::SameLine();
-
-            if (!this->state->can_search) {
-                ImGuiExtras::BeginDisable();
-            }
-
-            ImGui::SetCursorScreenPos(ImVec2(spinnerLocation.x + REFRESH_BUTTON_SIZE + spacing.x, spinnerLocation.y));
-            auto doSearch = ImGui::InputText("##search_input", this->state->query, IM_ARRAYSIZE(this->state->query),
-                                             ImGuiInputTextFlags_EnterReturnsTrue);
-
-            ImGui::SameLine();
-
-            doSearch = ImGui::Button("Search", ImVec2(0, REFRESH_BUTTON_SIZE)) || doSearch;
-
-            if (!this->state->can_search) {
-                ImGuiExtras::EndDisable();
-            }
-
-            if (doSearch) {
-                helper::str_trim(this->state->query);
-
-                if (strlen(this->state->query) > 2) {
-                    this->state->items.clear();
-
-                    items.clear();
-                    this->store->search(this->state->query, items);
-
-                    for (auto &item: items) {
-                        if (!this->state->items.contains(item.endpoint_path)) {
-                            const std::vector<Item> ep_items;
-                            this->state->items[item.endpoint_path] = ep_items;
-                        }
-
-                        this->state->items[item.endpoint_path].push_back(item);
-                    }
-                }
-            }
-
-            const auto winSize = ImGui::GetContentRegionAvail();
-            const int numGridCols = static_cast<int>(std::floor(winSize.x / GRID_ITEM_SIZE)) - 2;
-
-            for (const auto &[ep, results]: this->state->items) {
-                if (results.empty()) {
-                    continue;
+                    ImGui::EndTooltip();
                 }
 
-                if (ImGui::CollapsingHeader(std::format("{}", results[0].endpoint).c_str(), ImGuiTreeNodeFlags_Leaf)) {
-                    ImGui::PushItemWidth(winSize.x);
+                ImGui::SameLine();
 
-                    if (ImGui::BeginTable(std::format("Table: {}", ep).c_str(), numGridCols)) {
-                        for (int col = 0; col < numGridCols; col++) {
-                            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, GRID_ITEM_SIZE);
-                        }
+                const float search_button_width = ImGui::CalcTextSize("Search").x + style.FramePadding.x * 2.f;
 
-                        for (auto &result: results) {
-                            void *texture = this->LoadRemoteTexture(std::format("ITEM_TEX_{}", result.id).c_str(),
-                                                                    result.icon.c_str());
+                ImGuiExtras::BeginDisable(!this->state->can_search);
 
-                            ImGui::TableNextColumn();
-                            ImGui::Image(texture, ImVec2(GRID_ITEM_SIZE, GRID_ITEM_SIZE));
+                const auto search_bar_x = spinnerLocation.x + REFRESH_BUTTON_SIZE + item_spacing.x;
+                ImGui::SetCursorScreenPos(ImVec2(search_bar_x, spinnerLocation.y));
 
-                            minPoint = ImGui::GetItemRectMin();
-                            maxPoint = ImGui::GetItemRectMax();
+                ImGui::SetNextItemWidth(
+                    ImGui::GetWindowPos().x
+                    + window_size.x
+                    - search_bar_x
+                    - item_spacing.x
+                    - search_button_width
+                    - item_spacing.x
+                );
 
-                            std::string rarity = result.rarity;
+                auto do_search = ImGui::InputText(
+                    "##search_input",
+                    this->state->query,
+                    IM_ARRAYSIZE(this->state->query),
+                    ImGuiInputTextFlags_EnterReturnsTrue
+                );
 
-                            hovered = ImGui::IsItemHovered();
-                            auto &rarity_color = BORDER_COLORS.at(rarity);
-                            auto &rarity_color_hover = BORDER_COLORS_HOVER.at(rarity);
+                ImGui::SameLine();
 
-                            drawList->AddRect(
-                                minPoint,
-                                maxPoint,
-                                ImGui::ColorConvertFloat4ToU32(
-                                    hovered ? rarity_color_hover : rarity_color
-                                ),
-                                0.0f,
-                                0,
-                                BORDER_WIDTH
-                            );
+                do_search = ImGui::Button("Search", ImVec2(search_button_width, REFRESH_BUTTON_SIZE)) || do_search;
 
-                            auto count = result.count_or_charges();
+                ImGuiExtras::EndDisable(!this->state->can_search);
 
-                            if (!count.empty()) {
-                                savedCursor = ImGui::GetCursorPos();
+                if (do_search) {
+                    helper::str_trim(this->state->query);
 
-                                const auto textSize = ImGui::CalcTextSize(count.c_str());
+                    if (
+                        std::strlen(this->state->query) >= this->config->get_min_search_length()
+                        && this->last_search != this->state->query
+                    ) {
+                        // for some reason mouse clicks on the search bar also sets do_search
+                        // so we only search if the last search was different
+                        this->last_search = this->state->query;
+                        this->searching_or_calculating = true;
 
-                                ImGui::SetCursorScreenPos(ImVec2(
-                                    maxPoint.x - textSize.x - 3.0f,
-                                    maxPoint.y - textSize.y - 2.0f
-                                ));
+                        this->state->item_sections.clear();
 
-                                ImGui::Text(count.c_str());
+                        items.clear();
 
-                                ImGui::SetCursorPos(savedCursor);
-                            }
+                        std::jthread(
+                            [&] {
+                                this->store->search(this->state->query, items);
 
-                            if (hovered) {
-                                ImGui::SetNextWindowSizeConstraints(ImVec2(FLT_MIN, FLT_MIN), ImVec2(300.0f, FLT_MAX));
-
-                                ImGui::BeginTooltip();
-
-                                ImDrawList *tooltipDrawList = ImGui::GetWindowDrawList();
-
-                                ImGui::Image(texture, ImVec2(TOOLTIP_ICON_SIZE, TOOLTIP_ICON_SIZE));
-
-                                minPoint = ImGui::GetItemRectMin();
-                                maxPoint = ImGui::GetItemRectMax();
-
-                                tooltipDrawList->AddRect(minPoint, maxPoint, IM_COL32(255, 255, 255, 255), 0.0f, 0,
-                                                         BORDER_WIDTH);
-                                ImGui::SameLine();
-
-                                savedCursor = ImGui::GetCursorPos();
-
-                                const auto titleSize = ImGui::CalcTextSize(result.display_name().c_str());
-
-                                ImGui::SetCursorPosY(savedCursor.y + (maxPoint.y - minPoint.y - titleSize.y) / 2);
-
-                                ImGui::TextColored(rarity_color, result.display_name().c_str());
-
-                                ImGuiExtras::TextWrapped(result.clean_description(), 300.0f);
-
-                                ImGui::Dummy(ImVec2(0.0f, 8.0f));
-
-                                ImGuiExtras::Text(result.display_type());
-                                ImGuiExtras::Text(result.required_level());
-                                ImGuiExtras::Text(result.display_binding());
-
-                                if (result.vendor_value > 0) {
-                                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
-
-                                    const float textHeight = ImGui::CalcTextSize("m").y;
-
-                                    int copper = result.vendor_value * result.count;
-                                    int gold = copper / 10000;
-
-                                    copper %= 10000;
-                                    int silver = copper / 100;
-
-                                    copper %= 100;
-
-                                    savedCursor = ImGui::GetCursorPos();
-
-                                    if (gold > 0) {
-                                        ImGui::TextColored(COLOR_CURRENCY_GOLD, std::format("{}", gold).c_str());
-                                        ImGui::SameLine();
-
-                                        void *gold_texture = this->LoadResourceTexture("gold", GOLD_PNG);
-
-                                        ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
-                                        ImGui::Image(gold_texture, ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
-
-                                        ImGui::SameLine();
-                                        ImGui::SetCursorPosY(savedCursor.y);
-
-                                        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-                                        ImGui::Dummy(ImVec2(1.0f, 0.f));
-                                        ImGui::PopStyleVar();
-
-                                        ImGui::SameLine();
+                                for (auto &item: items) {
+                                    if (!this->state->item_sections.contains(item.endpoint_path)) {
+                                        this->state->item_sections[item.endpoint_path] = {};
                                     }
-
-                                    if (silver > 0 || gold > 0) {
-                                        ImGui::TextColored(COLOR_CURRENCY_SILVER, std::format("{}", silver).c_str());
-                                        ImGui::SameLine();
-
-                                        void *silver_texture = this->LoadResourceTexture("silver", SILVER_PNG);
-
-                                        ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
-                                        ImGui::Image(silver_texture, ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
-
-                                        ImGui::SameLine();
-                                        ImGui::SetCursorPosY(savedCursor.y);
-
-                                        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-                                        ImGui::Dummy(ImVec2(1.0f, 0.f));
-                                        ImGui::PopStyleVar();
-
-                                        ImGui::SameLine();
-                                    }
-
-                                    if (copper > 0 || silver > 0 || gold > 0) {
-                                        ImGui::TextColored(COLOR_CURRENCY_COPPER, std::format("{}", copper).c_str());
-                                        ImGui::SameLine();
-
-                                        void *copper_texture = this->LoadResourceTexture("copper", COPPER_PNG);
-
-                                        ImGui::SetCursorPosY(savedCursor.y + textHeight - CURRENCY_ICON_SIZE);
-                                        ImGui::Image(copper_texture, ImVec2(CURRENCY_ICON_SIZE, CURRENCY_ICON_SIZE));
-
-                                        ImGui::SameLine();
-
-                                        ImGui::SetCursorPosY(savedCursor.y);
-
-                                        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-                                        ImGui::Dummy(ImVec2(1.0f, 0.f));
-                                        ImGui::PopStyleVar();
-                                    }
-
-                                    ImGui::PopStyleVar();
+                                    this->state->item_sections[item.endpoint_path].push_back(&item);
                                 }
-
-                                ImGui::EndTooltip();
+                                this->searching_or_calculating = false;
+                                this->calculate_search_rows = true;
                             }
-                        }
-                        ImGui::EndTable();
+                        ).detach();
                     }
                 }
-                ImGui::PopItemWidth();
             }
         }
+        ImGui::EndChild();
 
-        ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, FLT_MIN), ImVec2(400.0f, FLT_MAX));
+        if (!this->searching_or_calculating && this->state->col_count != grid_col_count) {
+            this->state->col_count = grid_col_count;
+            this->calculate_search_rows = true;
+        }
 
-        if (ImGui::BeginPopupModal("API Key", &this->state->api_window,
-                                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar)) {
-            ImGui::Text(std::format("Account ID: {0}", this->id).c_str());
+        if (this->calculate_search_rows && !this->searching_or_calculating) {
+            this->state->item_rows.clear();
+            this->searching_or_calculating = true;
 
-            auto save = ImGui::InputText("##api_key", this->state->key_buffer, IM_ARRAYSIZE(this->state->key_buffer),
-                                         ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+            std::jthread(
+                [&] {
+                    for (auto &sec_items: this->state->item_sections | std::views::values) {
+                        if (sec_items.empty()) { continue; }
+                        this->state->item_rows.push_back({
+                            .label = sec_items[0]->endpoint,
+                            .items = {}
+                        });
 
-            save = ImGui::Button("Save") || save;
+                        for (int i = 0; i < sec_items.size(); i += this->state->col_count) {
+                            auto start = sec_items.begin() + i;
+                            const auto end = i + this->state->col_count < sec_items.size()
+                                                 ? start + this->state->col_count
+                                                 : sec_items.end();
 
-            if (save) {
-                helper::str_trim(this->state->key_buffer);
+                            if (const std::vector<Item *> sub_items = {start, end}; !sub_items.empty()) {
+                                this->state->item_rows.push_back({
+                                    .label = "",
+                                    .items = sub_items
+                                });
+                            }
+                        }
+                    }
 
-                this->config->set_api_key(this->id, this->state->key_buffer);
-                this->config->save();
+                    this->calculate_search_rows = false;
+                    this->searching_or_calculating = false;
+                }
+            ).detach();
+        }
 
-                this->init_or_update_client();
+        if (!this->searching_or_calculating) {
+            // quick way to override item spacing at the top of the virtual list
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing.y);
 
-                ImGui::CloseCurrentPopup();
-            }
+            ImGui::VirtualListV(
+                "##search_items_area",
+                // 1 extra element for the bottom padding
+                this->state->item_rows.size() + 1,
+                [&](const int i) {
+                    if (i == this->state->item_rows.size()) {
+                        return SEARCH_AREA_BOTTOM_PADDING;
+                    }
+                    if (const auto row = state->item_rows[i]; row.label.empty()) {
+                        return GRID_ITEM_SIZE;
+                    }
+                    return ImGui::GetTextLineHeightWithSpacing() + GRID_ITEM_SPACING;
+                },
+                [&](const int i) {
+                    if (i == this->state->item_rows.size()) {
+                        return SEARCH_AREA_BOTTOM_PADDING;
+                    }
+                    const auto row = state->item_rows[i];
+                    if (row.label.empty()) {
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + GRID_ITEM_SPACING);
+                        // half the spacing to account for both cells sharing an edge!
+                        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(GRID_ITEM_SPACING / 2, 0));
 
-            ImGui::SameLine();
+                        const auto table = ImGui::BeginTable(
+                            std::format("##table_{}", i).c_str(),
+                            this->state->col_count
+                        );
 
-            if (ImGui::Button("Cancel")) {
-                // restore the old api key
-                strcpy_s(this->state->key_buffer, this->config->get_api_key(this->id).c_str());
+                        if (table) {
+                            for (int col = 0; col < this->state->col_count; col++) {
+                                ImGui::TableSetupColumn(
+                                    std::format("##col_{}", col).c_str(),
+                                    ImGuiTableColumnFlags_WidthFixed,
+                                    GRID_ITEM_SIZE
+                                );
+                            }
+                            for (auto &item: row.items) {
+                                ImGui::TableNextColumn();
+                                draw_single_search_result(item);
+                            }
+                            ImGui::EndTable();
+                        }
 
-                ImGui::CloseCurrentPopup();
-            }
+                        ImGui::PopStyleVar();
 
-            ImGui::EndPopup();
+                        return GRID_ITEM_SIZE;
+                    }
+                    // ImGui::SetCursorPosX(ImGui::GetCursorPosX() + window_padding.x);
+                    ImGui::CollapsingHeader(
+                        row.label.c_str(),
+                        ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_Leaf
+                    );
+                    return ImGui::GetTextLineHeightWithSpacing() + GRID_ITEM_SPACING;
+                },
+                GRID_ITEM_SPACING
+            );
         }
     }
     ImGui::End();
+
+    if (this->is_settings_shown) {
+        ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, FLT_MIN), ImVec2(400.0f, FLT_MAX));
+        if (ImGui::Begin(
+            CONFIG_POPUP_NAME.c_str(),
+            &this->is_settings_shown,
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse
+        )) {
+            this->RenderSettingsWindow();
+        }
+        ImGui::End();
+    }
+}
+
+void Finder::RenderSettingsWindow() {
+    ImGui::LabelText(ImGuiExtras::LeftAlignedLabel("Account ID:").c_str(), std::format("{}", this->id).c_str());
+
+    if (ImGui::InputText(
+        ImGuiExtras::LeftAlignedLabel("API Key: ").c_str(),
+        this->settings_state->api_key_buffer,
+        IM_ARRAYSIZE(this->settings_state->api_key_buffer),
+        ImGuiInputTextFlags_Password
+    )) {
+        this->settings_state->pending_save = true;
+    }
+
+    if (ImGui::SliderInt(
+        ImGuiExtras::LeftAlignedLabel("Min. search length: ").c_str(),
+        &this->settings_state->min_search_length,
+        0,
+        10
+    )) {
+        this->settings_state->pending_save = true;
+    }
+
+    ImGuiExtras::BeginDisable(!this->settings_state->pending_save);
+    if (ImGui::Button("Save")) {
+        helper::str_trim(this->settings_state->api_key_buffer);
+
+        this->config->set_api_key(this->id, this->settings_state->api_key_buffer);
+        this->config->set_min_search_length(this->settings_state->min_search_length);
+
+        this->config->save();
+
+        this->settings_state->pending_save = false;
+
+        this->init_or_update_client();
+    }
+    ImGuiExtras::EndDisable(!this->settings_state->pending_save);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Cancel")) {
+        // restore from the saved config
+        strcpy_s(this->settings_state->api_key_buffer, this->config->get_api_key(this->id).c_str());
+        this->settings_state->min_search_length = this->config->get_min_search_length();
+
+        this->settings_state->pending_save = false;
+        this->is_settings_shown = false;
+    }
 }
 
 void Finder::SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader) {

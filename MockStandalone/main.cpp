@@ -137,13 +137,31 @@ int WinMain(
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
     const WNDCLASSEXW wc = {
-        sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr,
-        L"Mock Standalone", nullptr
+        sizeof(wc),
+        CS_CLASSDC,
+        WndProc,
+        0L,
+        0L,
+        GetModuleHandle(nullptr),
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        L"Mock Standalone",
+        nullptr
     };
     RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Mock Standalone app for Search addon", WS_OVERLAPPEDWINDOW,
+    HWND hwnd = ::CreateWindowW(wc.lpszClassName,
+                                L"Mock Standalone app for Search addon",
+                                WS_OVERLAPPEDWINDOW,
                                 100,
-                                100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
+                                100,
+                                1280,
+                                800,
+                                nullptr,
+                                nullptr,
+                                wc.hInstance,
+                                nullptr);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd)) {
@@ -229,7 +247,10 @@ int WinMain(
         // Rendering
         ImGui::Render();
         const float clear_color_with_alpha[4] = {
-            clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w
+            clear_color.x * clear_color.w,
+            clear_color.y * clear_color.w,
+            clear_color.z * clear_color.w,
+            clear_color.w
         };
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
         g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
@@ -279,13 +300,31 @@ bool CreateDeviceD3D(HWND hWnd) {
     //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
     D3D_FEATURE_LEVEL featureLevel;
     constexpr D3D_FEATURE_LEVEL featureLevelArray[2] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0,};
-    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
-                                                featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain,
-                                                &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr,
+                                                D3D_DRIVER_TYPE_HARDWARE,
+                                                nullptr,
+                                                createDeviceFlags,
+                                                featureLevelArray,
+                                                2,
+                                                D3D11_SDK_VERSION,
+                                                &sd,
+                                                &g_pSwapChain,
+                                                &g_pd3dDevice,
+                                                &featureLevel,
+                                                &g_pd3dDeviceContext);
     if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
-        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags,
-                                            featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice,
-                                            &featureLevel, &g_pd3dDeviceContext);
+        res = D3D11CreateDeviceAndSwapChain(nullptr,
+                                            D3D_DRIVER_TYPE_WARP,
+                                            nullptr,
+                                            createDeviceFlags,
+                                            featureLevelArray,
+                                            2,
+                                            D3D11_SDK_VERSION,
+                                            &sd,
+                                            &g_pSwapChain,
+                                            &g_pd3dDevice,
+                                            &featureLevel,
+                                            &g_pd3dDeviceContext);
     if (res != S_OK)
         return false;
 
@@ -350,7 +389,7 @@ LRESULT WINAPI WndProc(HWND hWnd, const UINT msg, const WPARAM wParam, const LPA
             PostQuitMessage(0);
             return 0;
         default:
-            return 0;
+            break;
     }
     return DefWindowProcW(hWnd, msg, wParam, lParam);
 }

@@ -8,34 +8,59 @@ typedef void * (*LOAD_REMOTE_TEXTURE)(const char *identifier, const char *url);
 
 typedef void * (*LOAD_RESOURCE_TEXTURE)(const char *identifier, int resourceId);
 
+struct ItemRow {
+    std::string label;
+    std::vector<Item *> items;
+};
+
+struct SettingsState {
+    char api_key_buffer[256];
+    int min_search_length;
+
+    bool pending_save;
+
+    // NOLINTNEXTLINE(*-pro-type-member-init)
+    SettingsState() {
+        std::memset(&this->api_key_buffer, 0, sizeof(this->api_key_buffer));
+        this->min_search_length = 0;
+
+        this->pending_save = false;
+    }
+};
+
 struct FinderState {
     char query[256];
-    char key_buffer[256];
 
-    std::map<std::string, std::vector<Item>> items = {};
+    std::map<std::string, std::vector<Item *>> item_sections = {};
+    std::vector<ItemRow> item_rows = {};
 
     bool needs_refresh;
     bool can_manual_refresh;
     bool can_search;
 
-    bool api_window;
+    int col_count;
 
     // NOLINTNEXTLINE(*-pro-type-member-init)
     FinderState() {
         std::memset(&this->query, 0, sizeof(this->query));
-        std::memset(&this->key_buffer, 0, sizeof(this->key_buffer));
 
         this->needs_refresh = true;
         this->can_manual_refresh = true;
         this->can_search = true;
 
-        this->api_window = false;
+        this->col_count = 0;
     }
 };
 
 
 class Finder {
+    std::string last_search = "\t";
+
     bool is_shown;
+    bool is_settings_shown;
+
+    bool searching_or_calculating;
+    bool calculate_search_rows;
 
     Config *config;
 
@@ -60,6 +85,8 @@ class Finder {
 
     void refresh_store() const noexcept;
 
+    void draw_single_search_result(Item *item) const;
+
     void init_or_update_client() {
         const std::string api_key = this->config->get_api_key(this->id);
 
@@ -71,12 +98,13 @@ class Finder {
                 this->client->update_token(api_key);
             }
 
-            strcpy_s(this->state->key_buffer, api_key.c_str());
+            strcpy_s(this->settings_state->api_key_buffer, api_key.c_str());
         }
     }
 
 public:
     FinderState *state;
+    SettingsState *settings_state;
 
     void Show();
 
@@ -88,6 +116,8 @@ public:
 
     void Render();
 
+    void RenderSettingsWindow();
+
     void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
 
     void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
@@ -96,9 +126,15 @@ public:
         this->id = id;
         this->dir = dir;
 
-        this->is_shown = false;
-
         this->state = new FinderState();
+        this->settings_state = new SettingsState();
+
+        this->is_shown = false;
+        this->is_settings_shown = false;
+
+        this->searching_or_calculating = false;
+        this->calculate_search_rows = false;
+
         this->config = new Config(dir / CONFIG_JSON_FILENAME);
 
         init_or_update_client();
