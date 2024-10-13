@@ -23,7 +23,7 @@ struct SettingsState {
     // NOLINTNEXTLINE(*-pro-type-member-init)
     SettingsState() {
         std::memset(&this->api_key_buffer, 0, sizeof(this->api_key_buffer));
-        this->min_search_length = 0;
+        this->min_search_length = CONFIG_DEFAULT_MIN_SEARCH_LENGTH;
 
         this->pending_save = false;
     }

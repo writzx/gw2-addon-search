@@ -82,6 +82,8 @@ const std::string JSON_KEY_API_KEYS = "api_keys";
 const std::string JSON_KEY_MIN_SEARCH = "min_search_length";
 const std::string JSON_KEY_BOOKMARKS = "bookmarks";
 
+constexpr int CONFIG_DEFAULT_MIN_SEARCH_LENGTH = 3;
+
 const std::string API_HOST_BASE = "https://api.guildwars2.com";
 const std::string API_VERSION = "v2";
 

@@ -4,7 +4,7 @@
 static json empty() {
     return {
         {JSON_KEY_API_KEYS, json({})},
-        {JSON_KEY_MIN_SEARCH, 0},
+        {JSON_KEY_MIN_SEARCH, CONFIG_DEFAULT_MIN_SEARCH_LENGTH},
         {JSON_KEY_BOOKMARKS, json::array()},
     };
 }
@@ -89,7 +89,7 @@ void Config::UpdateBookmark(const int index, Search &bookmark) {
 
 int Config::GetMinSearchLength() {
     // default value
-    int ret = 0;
+    int ret = CONFIG_DEFAULT_MIN_SEARCH_LENGTH;
     try {
         ret = this->data[JSON_KEY_MIN_SEARCH].get<int>();
     } catch (...) {

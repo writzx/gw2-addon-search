@@ -48,15 +48,15 @@ namespace ImGui {
                 if (final_height >= scroll_y && first == -1) {
                     first = i;
                     render_top = total_height;
+                }
+
+                if (final_height >= scroll_y + window_size.y && last == count - 1) {
+                    last = i;
 
                     if (cached_height != -1) {
                         total_height = cached_height + gap;
                         break;
                     }
-                }
-
-                if (final_height >= scroll_y + window_size.y && last == count - 1) {
-                    last = i;
                 }
 
                 total_height = final_height;
