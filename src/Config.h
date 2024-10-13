@@ -1,28 +1,38 @@
 #pragma once
+
 #include "const.h"
+#include "Search.h"
 
 class Config {
     json data;
     std::filesystem::path path;
 
-    std::vector<std::string> verified;
+    std::optional<std::vector<Search>> bookmarks = std::nullopt;
 
 public:
-    std::string get_api_key(const std::string &id);
+    std::string GetApiKey(const std::string &id);
 
-    void set_api_key(const std::string &id, const std::string &api_key);
+    void SetApiKey(const std::string &id, const std::string &api_key);
 
-    int get_min_search_length();
+    int GetMinSearchLength();
 
-    void set_min_search_length(int len);
+    void SetMinSearchLength(int len);
 
-    void load();
+    std::vector<Search> Bookmarks(bool read = false);
 
-    void save() const;
+    void AddBookmark(Search &bookmark);
+
+    void RemoveBookmark(int index);
+
+    void UpdateBookmark(int index, Search &bookmark);
+
+    void Load();
+
+    void Save() const;
 
     explicit Config(const std::filesystem::path &path) {
         this->path = path;
 
-        this->load();
+        this->Load();
     }
 };

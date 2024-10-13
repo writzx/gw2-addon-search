@@ -81,7 +81,26 @@ void Finder::tick() noexcept {
     this->state->can_search = this->store->CanSearch();
 
     if (this->state->needs_refresh) {
-        // refresh_store();
+        refresh_store();
+    }
+}
+
+void Finder::render_result_item_menu(const Item *item) const {
+    if (ImGui::BeginPopupContextItem(std::format("##item_menu_{}", item->storage_id).c_str())) {
+        if (ImGui::BeginMenu("Assign thumbnail to bookmark")) {
+            const auto bookmarks = this->config->Bookmarks();
+            for (int i = 0; i < bookmarks.size(); i++) {
+                auto bookmark = bookmarks[i];
+                if (ImGui::MenuItem(std::format("{}", bookmark.name).c_str())) {
+                    bookmark.thumbnail = item->icon;
+                    this->config->UpdateBookmark(i, bookmark);
+
+                    this->config->Save();
+                }
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndPopup();
     }
 }
 
@@ -98,6 +117,8 @@ void Finder::render_result_item(const Item *item) const {
     auto &rarity_color = BORDER_COLORS.at(item->rarity);
     auto &rarity_color_hover = BORDER_COLORS_HOVER.at(item->rarity);
 
+    this->render_result_item_menu(item);
+
     draw_list->AddRect(
         min_point,
         max_point,
@@ -111,7 +132,7 @@ void Finder::render_result_item(const Item *item) const {
     const auto count = item->count_or_charges();
 
     if (!count.empty()) {
-        ImVec2 saved_cursor = ImGui::GetCursorPos();
+        const ImVec2 saved_cursor = ImGui::GetCursorPos();
 
         const auto textSize = ImGui::CalcTextSize(count.c_str());
 
@@ -121,6 +142,7 @@ void Finder::render_result_item(const Item *item) const {
 
         ImGui::SetCursorPos(saved_cursor);
     }
+
     if (hovered) {
         this->render_result_item_tooltip(item);
     }
@@ -247,7 +269,7 @@ void Finder::render_currency_value(
 }
 
 void Finder::perform_search() {
-    // only search if the tab changes
+    // only search if the tab changes (or the search is empty)
     if (this->last_search != this->next_search) {
         // save as last_search
         this->last_search = this->next_search;
@@ -274,7 +296,7 @@ void Finder::perform_search() {
     }
 }
 
-void Finder::render_saved() {
+void Finder::render_bookmarks() {
     const auto &style = ImGui::GetStyle();
     const auto window_padding = style.WindowPadding;
 
@@ -283,7 +305,7 @@ void Finder::render_saved() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding.x, 0));
     const auto saved_searches_area = ImGui::BeginChild(
         "##saved_searches",
-        ImVec2(0, SAVED_SEARCH_ICON_SIZE + window_padding.y),
+        ImVec2(0, SAVED_SEARCH_ICON_SIZE + window_padding.y * 2),
         false,
         ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysUseWindowPadding
     );
@@ -291,11 +313,14 @@ void Finder::render_saved() {
 
     if (saved_searches_area) {
         ImGui::PushID("##search_tab");
-        const auto search_tab = ImGui::ImageButton(search_texture, ImVec2(SAVED_SEARCH_ICON_SIZE, SAVED_SEARCH_ICON_SIZE));
+        const auto search_tab = ImGui::ImageButton(
+            search_texture,
+            ImVec2(SAVED_SEARCH_ICON_SIZE, SAVED_SEARCH_ICON_SIZE)
+        );
         ImGui::PopID();
         if (search_tab) {
-            this->last_search = "";
-            this->next_search = "";
+            this->last_search = "\t";
+            this->next_search = "\t";
 
             this->clear_search();
 
@@ -305,8 +330,16 @@ void Finder::render_saved() {
         }
         ImGui::SameLine();
 
-        for (const auto &saved_search: this->saved_searches) {
-            void *s_tex = this->load_resource_texture(SEARCH_PNG);
+        const auto bookmarks = this->config->Bookmarks();
+
+        for (int i = 0; i < bookmarks.size(); i++) {
+            const auto &saved_search = bookmarks[i];
+            void *s_tex = search_texture;
+
+            if (!saved_search.thumbnail.empty()) {
+                s_tex = this->load_remote_texture(saved_search.thumbnail.c_str());
+            }
+
             ImGui::PushID(std::format("##saved_search_{}", saved_search.name).c_str());
             const auto saved_search_clicked = ImGui::ImageButton(
                 s_tex,
@@ -314,7 +347,17 @@ void Finder::render_saved() {
             );
             ImGui::PopID();
 
-            ImGuiExtras::Tooltip(saved_search.name.c_str());
+            ImGuiExtras::Tooltip(std::format("Bookmark: {}", saved_search.name).c_str());
+
+            if (ImGui::BeginPopupContextItem(std::format("##saved_search_context_{}", saved_search.name).c_str())) {
+                if (ImGui::MenuItem("Delete")) {
+                    this->config->RemoveBookmark(i);
+
+                    this->config->Save();
+                }
+
+                ImGui::EndPopup();
+            }
 
             if (saved_search_clicked) {
                 this->next_search = saved_search.name;
@@ -506,7 +549,7 @@ void Finder::render_header() {
 
             if (this->render_search()) {
                 if (
-                    std::strlen(this->state->query) >= this->config->get_min_search_length()
+                    std::strlen(this->state->query) >= this->config->GetMinSearchLength()
                     && this->last_search != this->state->query
                 ) {
                     helper::str_trim(this->state->query);
@@ -527,14 +570,14 @@ void Finder::render_header() {
                 ImVec2(1, 1),
                 ICON_BUTTON_PADDING
             );
-            ImGuiExtras::Tooltip("Bookmark");
+            ImGuiExtras::Tooltip("Bookmark search");
             // ImGuiExtras::Tooltip("Bookmark (right-click for more options)");
 
             if (save_search) {
-                this->saved_searches.push_back({
-                    .name = this->state->query,
-                    .terms = {this->state->query}
-                });
+                auto new_bookmark = Search(this->state->query, "");
+                this->config->AddBookmark(new_bookmark);
+
+                this->config->Save();
             }
         }
     }
@@ -640,7 +683,7 @@ void Finder::Render() {
         const auto item_spacing = style.ItemSpacing;
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + window_padding.y);
-        this->render_saved();
+        this->render_bookmarks();
 
         if (ImGui::BeginChild("##body")) {
             this->render_header();
@@ -734,10 +777,10 @@ void Finder::render_settings_view() {
     if (ImGui::Button("Save")) {
         helper::str_trim(this->settings_state->api_key_buffer);
 
-        this->config->set_api_key(this->id, this->settings_state->api_key_buffer);
-        this->config->set_min_search_length(this->settings_state->min_search_length);
+        this->config->SetApiKey(this->id, this->settings_state->api_key_buffer);
+        this->config->SetMinSearchLength(this->settings_state->min_search_length);
 
-        this->config->save();
+        this->config->Save();
 
         this->settings_state->pending_save = false;
 
@@ -749,8 +792,8 @@ void Finder::render_settings_view() {
 
     if (ImGui::Button("Cancel")) {
         // restore from the saved config
-        strcpy_s(this->settings_state->api_key_buffer, this->config->get_api_key(this->id).c_str());
-        this->settings_state->min_search_length = this->config->get_min_search_length();
+        strcpy_s(this->settings_state->api_key_buffer, this->config->GetApiKey(this->id).c_str());
+        this->settings_state->min_search_length = this->config->GetMinSearchLength();
 
         this->settings_state->pending_save = false;
         this->is_settings_shown = false;

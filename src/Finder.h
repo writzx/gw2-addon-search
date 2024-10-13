@@ -78,8 +78,6 @@ class Finder {
 
     std::vector<Item> items = {};
 
-    std::vector<Search> saved_searches = {};
-
     std::optional<chrono::time_point> last_tick;
 
     void *load_remote_texture(const char *) const;
@@ -95,6 +93,7 @@ class Finder {
     void recalculate_rows();
 
     void render_result_row(int, const ItemRow &) const;
+    void render_result_item_menu(const Item* item) const;
 
     void tick() noexcept;
 
@@ -108,7 +107,7 @@ class Finder {
 
     void render_settings_view();
 
-    void render_saved();
+    void render_bookmarks();
 
     void clear_search() const;
 
@@ -117,7 +116,7 @@ class Finder {
     void render_header();
 
     void init_or_update_client() {
-        const std::string api_key = this->config->get_api_key(this->id);
+        const std::string api_key = this->config->GetApiKey(this->id);
 
         if (!api_key.empty()) {
             if (this->client == nullptr) {
