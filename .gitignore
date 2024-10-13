@@ -6,4 +6,4 @@
 x64
 Debug
 Search/
-cmake-build-debug
+cmake-build-*
