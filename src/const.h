@@ -9,6 +9,7 @@ using chrono = std::chrono::utc_clock;
 using namespace std::chrono_literals;
 
 const std::string ADDON_NAME = "Finder";
+const std::string CONFIG_POPUP_NAME = "Finder Settings";
 
 constexpr int MAX_CONNECTIONS = 6;
 
@@ -16,21 +17,35 @@ constexpr chrono::duration UI_TICK_INTERVAL = 5s;
 constexpr chrono::duration AUTO_REFRESH_INTERVAL = 2min;
 constexpr chrono::duration MANUAL_REFRESH_INTERVAL = 1min;
 
+constexpr float SAVED_SEARCH_ICON_SIZE = 24.0f;
+
 constexpr float SEARCH_AREA_BOTTOM_PADDING = 64.0f;
 
+constexpr float TOOLTIP_MIN_WIDTH = 280.0f;
+constexpr float TOOLTIP_MAX_WIDTH = 320.0f;
+
+const ImVec2 FINDER_MIN_SIZE = ImVec2(420.0f, 300.0f);
+
+constexpr float TOOLTIP_ICON_SIZE = 32.0f;
+
 constexpr float BORDER_WIDTH = 1.0f;
+
 constexpr float GRID_ITEM_SIZE = 48.0f;
 constexpr float GRID_ITEM_SPACING = 4.0f;
-constexpr float TOOLTIP_ICON_SIZE = 32.0f;
+
 constexpr float CURRENCY_ICON_SIZE = 15.0f;
 
-constexpr float REFRESH_BUTTON_SIZE = 24.0f;
+constexpr float ICON_BUTTON_SIZE = 20.0f;
+constexpr float ICON_BUTTON_PADDING = 2.0f;
+constexpr float ICON_BUTTON_OUTER_SIZE = ICON_BUTTON_SIZE + ICON_BUTTON_PADDING * 2;
+
 constexpr float REFRESH_SPINNER_RADIUS = 8.0f;
 constexpr float REFRESH_SPINNER_THICKNESS = 2.0f;
 
 const std::regex HTML_TAGS_PATTERN("<[^>]*>");
 
 const std::string DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S";
+const std::string DATETIME_DISPLAY_FORMAT = "%H:%M -- %a, %d %b %Y";
 
 const auto COLOR_CURRENCY_GOLD = ImVec4(246 / 255.f, 206 / 255.f, 91 / 255.f, 255 / 255.f);
 const auto COLOR_CURRENCY_SILVER = ImVec4(199 / 255.f, 197 / 255.f, 199 / 255.f, 255 / 255.f);
@@ -78,4 +93,24 @@ const std::map<std::string, int> ENDPOINT_SORT_ORDER = {
     {"/account/materials", 4}
 };
 
-const std::string CONFIG_POPUP_NAME = "Finder Settings";
+const std::map<std::string, std::map<std::string, std::string>> DISPLAY_TYPE_MAP = {
+    {
+        "Armor",
+        {
+            {"Helm", "Head Armor"},
+            {"Shoulders", "Shoulder Armor"},
+            {"Coat", "Chest Armor"},
+            {"Gloves", "Hand Armor"},
+            {"Leggings", "Leg Armor"},
+            {"Boots", "Foot Armor"}
+        }
+    },
+    {
+        "CraftingMaterial",
+        {{"", "Crafting Material"}}
+    },
+    {
+        "UpgradeComponent",
+        {{"", "Upgrade Component"}}
+    }
+};

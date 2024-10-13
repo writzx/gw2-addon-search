@@ -11,12 +11,12 @@ std::string APIClient::get_or_throw(const std::string &path) {
     }
 }
 
-void APIClient::update_token(const std::string &token) {
+void APIClient::UpdateToken(const std::string &token) {
     this->client.set_bearer_token_auth(token);
 }
 
-std::string APIClient::fetch(const std::string &endpoint_name) {
-    auto endpoints = this->endpoints();
+std::string APIClient::Fetch(const std::string &endpoint_name) {
+    auto endpoints = this->Endpoints();
 
     if (const auto endpoint = endpoints.find(endpoint_name); endpoint != endpoints.end()) {
         return this->get_or_throw("/" + API_VERSION + endpoint->second.path);
@@ -25,7 +25,7 @@ std::string APIClient::fetch(const std::string &endpoint_name) {
     throw "endpoint doesn't exist";
 }
 
-std::map<std::string, Endpoint> APIClient::endpoints(const bool refresh) {
+std::map<std::string, Endpoint> APIClient::Endpoints(const bool refresh) {
     if (refresh) {
         this->_endpoints.clear();
 
@@ -50,8 +50,4 @@ std::map<std::string, Endpoint> APIClient::endpoints(const bool refresh) {
     }
 
     return this->_endpoints;
-}
-
-std::map<std::string, Endpoint> APIClient::endpoints() {
-    return this->endpoints(false);
 }

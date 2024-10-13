@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+#include "Search.h"
 #include "ItemStore.h"
 #include "Config.h"
 
@@ -54,7 +55,9 @@ struct FinderState {
 
 
 class Finder {
+    // todo std::vector<std::variant<std::string, int>>
     std::string last_search = "\t";
+    std::string next_search = "\t";
 
     bool is_shown;
     bool is_settings_shown;
@@ -70,22 +73,48 @@ class Finder {
     ItemStore *store = nullptr;
     APIClient *client = nullptr;
 
-    LOAD_REMOTE_TEXTURE load_remote_texture = nullptr;
-    LOAD_RESOURCE_TEXTURE load_resource_texture = nullptr;
+    LOAD_REMOTE_TEXTURE load_remote_tex = nullptr;
+    LOAD_RESOURCE_TEXTURE load_resource_tex = nullptr;
 
-    std::vector<Item> items;
+    std::vector<Item> items = {};
+
+    std::vector<Search> saved_searches = {};
 
     std::optional<chrono::time_point> last_tick;
 
-    void *LoadRemoteTexture(const char *identifier, const char *url) const;
+    void *load_remote_texture(const char *) const;
 
-    void *LoadResourceTexture(const char *identifier, int resourceId) const;
+    void *load_resource_texture(int) const;
+
+    bool render_search() const;
+
+    bool render_refresh() const;
+
+    void render_settings_window();
+
+    void recalculate_rows();
+
+    void render_result_row(int, const ItemRow &) const;
 
     void tick() noexcept;
 
     void refresh_store() const noexcept;
 
-    void draw_single_search_result(Item *item) const;
+    void render_result_item(const Item *) const;
+
+    void render_result_item_tooltip(const Item *) const;
+
+    void render_currency_value(int, int, ImVec4, float, float) const;
+
+    void render_settings_view();
+
+    void render_saved();
+
+    void clear_search() const;
+
+    void perform_search();
+
+    void render_header();
 
     void init_or_update_client() {
         const std::string api_key = this->config->get_api_key(this->id);
@@ -95,7 +124,7 @@ class Finder {
                 this->client = new APIClient(api_key);
                 this->store = new ItemStore(this->id, this->client, this->dir);
             } else {
-                this->client->update_token(api_key);
+                this->client->UpdateToken(api_key);
             }
 
             strcpy_s(this->settings_state->api_key_buffer, api_key.c_str());
@@ -112,15 +141,13 @@ public:
 
     void Toggle();
 
-    static void InitImGui(void *ctxt, void *imgui_malloc, void *imgui_free);
+    static void InitImGui(void *, void *, void *);
 
     void Render();
 
-    void RenderSettingsWindow();
+    void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE);
 
-    void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader);
-
-    void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE texture_loader);
+    void SetResourceTextureLoader(LOAD_RESOURCE_TEXTURE);
 
     Finder(const std::string &id, const std::filesystem::path &dir) {
         this->id = id;
@@ -137,6 +164,6 @@ public:
 
         this->config = new Config(dir / CONFIG_JSON_FILENAME);
 
-        init_or_update_client();
+        this->init_or_update_client();
     }
 };

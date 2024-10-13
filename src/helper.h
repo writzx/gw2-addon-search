@@ -24,7 +24,7 @@ namespace helper {
     }
 
     static std::string datetime_tostring(const chrono::time_point tp) {
-        const auto string_format = std::format("{{:{0}}}", DATETIME_FORMAT);
+        const auto string_format = std::format("{{:{0}}}", DATETIME_DISPLAY_FORMAT);
         return vformat(string_format, make_format_args(tp));
     }
 }

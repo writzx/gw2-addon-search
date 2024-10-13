@@ -1,4 +1,5 @@
 #pragma once
+#include <const.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -16,6 +17,40 @@ namespace ImGuiExtras {
         labelID += label;
 
         return labelID;
+    }
+
+    inline void Tooltip(
+        const std::function<void()> &render,
+        const bool hovered = ImGui::IsItemHovered(),
+        const ImVec2 &min_size = ImVec2(TOOLTIP_MIN_WIDTH, FLT_MIN),
+        const ImVec2 &max_size = ImVec2(TOOLTIP_MAX_WIDTH, FLT_MAX)
+    ) {
+        if (hovered) {
+            ImGui::SetNextWindowSizeConstraints(min_size, max_size);
+
+            ImGui::BeginTooltip();
+
+            render();
+
+            ImGui::EndTooltip();
+        }
+    }
+
+    inline void Tooltip(
+        const char *content,
+        const bool hovered = ImGui::IsItemHovered(),
+        const ImVec2 &min_size = ImVec2(FLT_MIN, FLT_MIN),
+        const ImVec2 &max_size = ImVec2(TOOLTIP_MAX_WIDTH, FLT_MAX)
+
+    ) {
+        Tooltip(
+            [&] {
+                ImGui::Text(content);
+            },
+            hovered,
+            min_size,
+            max_size
+        );
     }
 
     inline void BeginDisable(const bool disable = true, const bool allowHover = false) {
