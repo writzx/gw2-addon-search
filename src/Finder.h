@@ -80,6 +80,8 @@ class Finder {
 
     std::vector<Item> items = {};
 
+    float search_results_total_height = -1;
+
     std::optional<chrono::time_point> last_tick;
 
     void *load_remote_texture(const char *) const;
@@ -165,6 +167,8 @@ public:
         this->calculate_search_rows = false;
 
         this->config = new Config(dir / CONFIG_JSON_FILENAME);
+
+        this->settings_state->min_search_length = this->config->GetMinSearchLength();
 
         this->init_or_update_client();
     }

@@ -603,6 +603,7 @@ void Finder::recalculate_rows() {
     }
 
     if (this->calculate_search_rows && !this->searching_or_calculating) {
+        this->search_results_total_height = -1;
         this->state->item_rows.clear();
         this->searching_or_calculating = true;
 
@@ -704,6 +705,7 @@ void Finder::Render() {
                     "##search_items_area",
                     // 1 extra element for the bottom padding
                     this->state->item_rows.size() + 1,
+                    this->search_results_total_height,
                     [&](const int i) {
                         // bottom padding
                         if (i == this->state->item_rows.size()) {

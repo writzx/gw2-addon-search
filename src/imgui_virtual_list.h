@@ -10,6 +10,7 @@ namespace ImGui {
     inline void VirtualListV(
         const char *label,
         const unsigned long count,
+        float &cached_height,
         const std::function<float(int)> &measure_item,
         const std::function<float(int)> &render_item,
         const float gap = 0.0f,
@@ -47,6 +48,11 @@ namespace ImGui {
                 if (final_height >= scroll_y && first == -1) {
                     first = i;
                     render_top = total_height;
+
+                    if (cached_height != -1) {
+                        total_height = cached_height + gap;
+                        break;
+                    }
                 }
 
                 if (final_height >= scroll_y + window_size.y && last == count - 1) {
@@ -58,6 +64,8 @@ namespace ImGui {
 
             // there are no more items, remove the last gap that was added for it!
             total_height -= gap;
+
+            cached_height = total_height;
 
             PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 
