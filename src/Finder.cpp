@@ -336,15 +336,10 @@ void Finder::render_bookmarks() {
 
         for (int i = 0; i < bookmarks.size(); i++) {
             const auto &bookmark = bookmarks[i];
-            void *s_tex = search_texture;
-
-            if (!bookmark.thumbnail.empty()) {
-                s_tex = this->load_remote_texture(bookmark.thumbnail.c_str());
-            }
 
             ImGui::PushID(std::format("##saved_search_{}", bookmark.name).c_str());
             const auto bookmark_clicked = ImGui::ImageButton(
-                s_tex,
+                !bookmark.thumbnail.empty() ? this->load_remote_texture(bookmark.thumbnail.c_str()) : search_texture,
                 ImVec2(SAVED_SEARCH_ICON_SIZE, SAVED_SEARCH_ICON_SIZE)
             );
             ImGui::PopID();
