@@ -791,7 +791,10 @@ void Finder::RenderSettingsView() {
     }
 
     ImGuiExtras::BeginDisable(!this->settings_state->pending_save);
-    if (ImGui::Button("Save")) {
+    const bool save = ImGui::Button("Save");
+    ImGuiExtras::EndDisable(!this->settings_state->pending_save);
+
+    if (save) {
         helper::str_trim(this->settings_state->api_key_buffer);
 
         this->config->SetApiKey(this->id, this->settings_state->api_key_buffer);
@@ -803,7 +806,6 @@ void Finder::RenderSettingsView() {
 
         this->init_or_update_client();
     }
-    ImGuiExtras::EndDisable(!this->settings_state->pending_save);
 }
 
 void Finder::SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader) {

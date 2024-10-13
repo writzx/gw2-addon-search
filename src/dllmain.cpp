@@ -131,7 +131,7 @@ static void ToggleFinder(const char */*aIdentifier*/, bool aIsRelease) {
         return;
     }
 
-    if (aIsRelease) {
+    if (!aIsRelease) {
         finder->Toggle();
     }
 }
