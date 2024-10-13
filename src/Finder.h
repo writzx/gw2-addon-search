@@ -62,6 +62,8 @@ class Finder {
     bool is_shown;
     bool is_settings_shown;
 
+    bool is_showing_bookmark = false;
+
     bool searching_or_calculating;
     bool calculate_search_rows;
 
@@ -93,7 +95,8 @@ class Finder {
     void recalculate_rows();
 
     void render_result_row(int, const ItemRow &) const;
-    void render_result_item_menu(const Item* item) const;
+
+    void render_result_item_menu(const Item *item) const;
 
     void tick() noexcept;
 
@@ -104,8 +107,6 @@ class Finder {
     void render_result_item_tooltip(const Item *) const;
 
     void render_currency_value(int, int, ImVec4, float, float) const;
-
-    void render_settings_view();
 
     void render_bookmarks();
 
@@ -143,6 +144,8 @@ public:
     static void InitImGui(void *, void *, void *);
 
     void Render();
+
+    void RenderSettingsView();
 
     void SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE);
 

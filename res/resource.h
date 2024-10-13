@@ -7,3 +7,5 @@
 #define SAVE_PNG                        107
 #define SEARCH_PNG                      108
 #define BACKSPACE_PNG                   109
+#define FREG_ICON_PNG                   110
+#define FREG_ICON_HOVER_PNG             111

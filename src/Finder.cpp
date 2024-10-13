@@ -319,6 +319,8 @@ void Finder::render_bookmarks() {
         );
         ImGui::PopID();
         if (search_tab) {
+            this->is_showing_bookmark = false;
+
             this->last_search = "\t";
             this->next_search = "\t";
 
@@ -333,23 +335,23 @@ void Finder::render_bookmarks() {
         const auto bookmarks = this->config->Bookmarks();
 
         for (int i = 0; i < bookmarks.size(); i++) {
-            const auto &saved_search = bookmarks[i];
+            const auto &bookmark = bookmarks[i];
             void *s_tex = search_texture;
 
-            if (!saved_search.thumbnail.empty()) {
-                s_tex = this->load_remote_texture(saved_search.thumbnail.c_str());
+            if (!bookmark.thumbnail.empty()) {
+                s_tex = this->load_remote_texture(bookmark.thumbnail.c_str());
             }
 
-            ImGui::PushID(std::format("##saved_search_{}", saved_search.name).c_str());
-            const auto saved_search_clicked = ImGui::ImageButton(
+            ImGui::PushID(std::format("##saved_search_{}", bookmark.name).c_str());
+            const auto bookmark_clicked = ImGui::ImageButton(
                 s_tex,
                 ImVec2(SAVED_SEARCH_ICON_SIZE, SAVED_SEARCH_ICON_SIZE)
             );
             ImGui::PopID();
 
-            ImGuiExtras::Tooltip(std::format("Bookmark: {}", saved_search.name).c_str());
+            ImGuiExtras::Tooltip(std::format("Bookmark: {}", bookmark.name).c_str());
 
-            if (ImGui::BeginPopupContextItem(std::format("##saved_search_context_{}", saved_search.name).c_str())) {
+            if (ImGui::BeginPopupContextItem(std::format("##saved_search_context_{}", bookmark.name).c_str())) {
                 if (ImGui::MenuItem("Delete")) {
                     this->config->RemoveBookmark(i);
 
@@ -359,9 +361,11 @@ void Finder::render_bookmarks() {
                 ImGui::EndPopup();
             }
 
-            if (saved_search_clicked) {
-                this->next_search = saved_search.name;
-                strcpy_s(this->state->query, saved_search.name.c_str());
+            if (bookmark_clicked) {
+                this->is_showing_bookmark = true;
+
+                this->next_search = bookmark.name;
+                strcpy_s(this->state->query, bookmark.name.c_str());
             }
 
             ImGui::SameLine();
@@ -686,7 +690,9 @@ void Finder::Render() {
         this->render_bookmarks();
 
         if (ImGui::BeginChild("##body")) {
-            this->render_header();
+            if (!this->is_showing_bookmark) {
+                this->render_header();
+            }
 
             this->recalculate_rows();
 
@@ -746,13 +752,24 @@ void Finder::render_settings_window() {
             &this->is_settings_shown,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse
         )) {
-            this->render_settings_view();
+            this->RenderSettingsView();
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Cancel")) {
+                // restore from the saved config
+                strcpy_s(this->settings_state->api_key_buffer, this->config->GetApiKey(this->id).c_str());
+                this->settings_state->min_search_length = this->config->GetMinSearchLength();
+
+                this->settings_state->pending_save = false;
+                this->is_settings_shown = false;
+            }
         }
         ImGui::End();
     }
 }
 
-void Finder::render_settings_view() {
+void Finder::RenderSettingsView() {
     ImGui::LabelText(ImGuiExtras::LeftAlignedLabel("Account ID:").c_str(), std::format("{}", this->id).c_str());
 
     if (ImGui::InputText(
@@ -787,17 +804,6 @@ void Finder::render_settings_view() {
         this->init_or_update_client();
     }
     ImGuiExtras::EndDisable(!this->settings_state->pending_save);
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Cancel")) {
-        // restore from the saved config
-        strcpy_s(this->settings_state->api_key_buffer, this->config->GetApiKey(this->id).c_str());
-        this->settings_state->min_search_length = this->config->GetMinSearchLength();
-
-        this->settings_state->pending_save = false;
-        this->is_settings_shown = false;
-    }
 }
 
 void Finder::SetRemoteTextureLoader(LOAD_REMOTE_TEXTURE texture_loader) {

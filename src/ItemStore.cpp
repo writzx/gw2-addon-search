@@ -62,7 +62,7 @@ void ItemStore::RefreshEndpoint(Endpoint ep, SQLite::Database &stored_items) {
     // we reuse this query to insert all the items
     SQLite::Statement insert_query{stored_items, INSERT_TABLE_ITEM_STORE};
 
-    this->status = std::format("refreshing. querying endpoint: {0} ({1})...", ep.label, ep.path);
+    this->status = std::format("refreshing.\nquerying endpoint: {0} ({1})...", ep.label, ep.path);
     this->last_status = chrono::now();
 
     // transaction to insert all items at once for the endpoint
@@ -94,7 +94,7 @@ void ItemStore::RefreshEndpoint(Endpoint ep, SQLite::Database &stored_items) {
     // finally unlock the store
     this->store_lock.unlock();
 
-    this->status = std::format("refreshing. querying endpoint: {0} ({1})...complete.", ep.label, ep.path);
+    this->status = std::format("refreshing.\nquerying endpoint: {0} ({1})...complete.", ep.label, ep.path);
     this->last_status = chrono::now();
 }
 
