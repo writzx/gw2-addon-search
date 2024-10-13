@@ -44,9 +44,9 @@ static void add_to_query(json &stored_item, SQLite::Statement &insert_query, con
     insert_query.reset();
 }
 
-void ItemStore::refresh_endpoint(Endpoint ep, SQLite::Database &stored_items) {
+void ItemStore::RefreshEndpoint(Endpoint ep, SQLite::Database &stored_items) {
     // fetch the endpoint first (before locking the store)
-    json e_data = json::parse(this->api_client->fetch(ep.path));
+    json e_data = json::parse(this->api_client->Fetch(ep.path));
 
     // lock the store to prevent other threads accessing it
     this->store_lock.lock();
@@ -62,7 +62,7 @@ void ItemStore::refresh_endpoint(Endpoint ep, SQLite::Database &stored_items) {
     // we reuse this query to insert all the items
     SQLite::Statement insert_query{stored_items, INSERT_TABLE_ITEM_STORE};
 
-    this->status = std::format("refreshing. querying endpoint: {0} ({1})...", ep.label, ep.path);
+    this->status = std::format("refreshing.\nquerying endpoint: {0} ({1})...", ep.label, ep.path);
     this->last_status = chrono::now();
 
     // transaction to insert all items at once for the endpoint
@@ -94,13 +94,13 @@ void ItemStore::refresh_endpoint(Endpoint ep, SQLite::Database &stored_items) {
     // finally unlock the store
     this->store_lock.unlock();
 
-    this->status = std::format("refreshing. querying endpoint: {0} ({1})...complete.", ep.label, ep.path);
+    this->status = std::format("refreshing.\nquerying endpoint: {0} ({1})...complete.", ep.label, ep.path);
     this->last_status = chrono::now();
 }
 
-bool ItemStore::can_manual_refresh() {
+bool ItemStore::CanManualRefresh() {
     if (
-        const auto last_update = this->last_updated(false);
+        const auto last_update = this->LastUpdated(false);
         !last_update.has_value() || chrono::now() - last_update.value() >= MANUAL_REFRESH_INTERVAL
     ) {
         return !this->refreshing;
@@ -109,7 +109,7 @@ bool ItemStore::can_manual_refresh() {
     return false;
 }
 
-bool ItemStore::should_auto_refresh() const {
+bool ItemStore::ShouldAutoRefresh() const {
     if (chrono::now() - this->last_status >= AUTO_REFRESH_INTERVAL) {
         return !this->refreshing;
     }
@@ -117,13 +117,13 @@ bool ItemStore::should_auto_refresh() const {
     return false;
 }
 
-bool ItemStore::can_search() const {
+bool ItemStore::CanSearch() const {
     return this->last_refresh.has_value()
            && is_regular_file(this->dir / this->id / STORED_DB_FILENAME)
            && is_regular_file(this->dir / ITEMS_DB_FILENAME);
 }
 
-void ItemStore::refresh() {
+void ItemStore::Refresh() {
     try {
         if (this->refreshing) {
             // already in progress
@@ -161,13 +161,13 @@ void ItemStore::refresh() {
 
         this->store_lock.unlock();
 
-        auto c_endpoints = this->api_client->endpoints(true);
+        auto c_endpoints = this->api_client->Endpoints(true);
 
         std::vector<std::future<void>> futures;
 
         // fetches all the endpoints from the api and then refreshes every endpoint
         for (auto &e_endpoint: c_endpoints | std::views::values) {
-            futures.push_back(this->pool.enqueue([&] { refresh_endpoint(e_endpoint, stored_items); }));
+            futures.push_back(this->pool.enqueue([&] { RefreshEndpoint(e_endpoint, stored_items); }));
         }
 
         // wait for refreshes to finish
@@ -182,7 +182,7 @@ void ItemStore::refresh() {
         copy_file(stored_db_loc, stored_db_loc_final, std::filesystem::copy_options::overwrite_existing);
         // todo std::filesystem::remove(stored_db_loc);
 
-        this->last_updated(true);
+        this->LastUpdated(true);
         this->refreshing = false;
     } catch (...) {
         this->status = "refresh failed.";
@@ -193,7 +193,7 @@ void ItemStore::refresh() {
     }
 }
 
-void ItemStore::search(std::string keyword, std::vector<Item> &results) const {
+void ItemStore::Search(std::string keyword, std::vector<Item> &results) const {
     SQLite::Database stored_items(this->dir / this->id / STORED_DB_FILENAME, SQLite::OPEN_READONLY);
 
     auto items_db_path = (this->dir / ITEMS_DB_FILENAME).string();
@@ -232,8 +232,8 @@ void ItemStore::search(std::string keyword, std::vector<Item> &results) const {
     }
 }
 
-std::map<Endpoint *, chrono::time_point> ItemStore::endpoints() const {
-    auto eps = this->api_client->endpoints();
+std::map<Endpoint *, chrono::time_point> ItemStore::Endpoints() const {
+    auto eps = this->api_client->Endpoints();
     std::map<Endpoint *, chrono::time_point> seps;
 
     const SQLite::Database stored_items(this->dir / this->id / STORED_DB_FILENAME, SQLite::OPEN_READONLY);
@@ -249,14 +249,10 @@ std::map<Endpoint *, chrono::time_point> ItemStore::endpoints() const {
     return seps;
 }
 
-std::optional<chrono::time_point> ItemStore::last_updated() {
-    return this->last_updated(false);
-}
-
-std::optional<chrono::time_point> ItemStore::last_updated(const bool refresh) {
+std::optional<chrono::time_point> ItemStore::LastUpdated(const bool refresh) {
     try {
         if (refresh || !this->last_refresh.has_value()) {
-            for (const auto &[ep, last_updated]: this->endpoints()) {
+            for (const auto &[ep, last_updated]: this->Endpoints()) {
                 if (last_updated > this->last_refresh) {
                     this->last_refresh = last_updated;
                 }

@@ -39,21 +39,19 @@ public:
        last_status(chrono::now() - 5min) {
     }
 
-    void refresh();
+    void Refresh();
 
-    void refresh_endpoint(Endpoint ep, SQLite::Database &stored_items);
+    void RefreshEndpoint(Endpoint ep, SQLite::Database &stored_items);
 
-    bool can_manual_refresh();
+    bool CanManualRefresh();
 
-    bool should_auto_refresh() const;
+    bool ShouldAutoRefresh() const;
 
-    bool can_search() const;
+    bool CanSearch() const;
 
-    void search(std::string keyword, std::vector<Item> &results) const;
+    void Search(std::string keyword, std::vector<Item> &results) const;
 
-    std::map<Endpoint *, chrono::time_point> endpoints() const;
+    std::map<Endpoint *, chrono::time_point> Endpoints() const;
 
-    std::optional<chrono::time_point> last_updated();
-
-    std::optional<chrono::time_point> last_updated(bool refresh);
+    std::optional<chrono::time_point> LastUpdated(bool refresh = false);
 };

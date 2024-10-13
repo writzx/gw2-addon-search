@@ -76,11 +76,9 @@ public:
         this->client.set_bearer_token_auth(token);
     }
 
-    void update_token(const std::string &token);
+    void UpdateToken(const std::string &token);
 
-    std::string fetch(const std::string &endpoint_name);
+    std::string Fetch(const std::string &endpoint_name);
 
-    std::map<std::string, Endpoint> endpoints(bool refresh);
-
-    std::map<std::string, Endpoint> endpoints();
+    std::map<std::string, Endpoint> Endpoints(bool refresh = false);
 };

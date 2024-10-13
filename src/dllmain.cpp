@@ -37,6 +37,14 @@ BOOL APIENTRY DllMain(
     return TRUE;
 }
 
+static void AddonSettings() {
+    if (finder == nullptr) {
+        return;
+    }
+
+    finder->RenderSettingsView();
+}
+
 static void AddonRender() {
     if (finder == nullptr) {
         return;
@@ -118,6 +126,16 @@ static void FixOldAddonDir() noexcept {
     }
 }
 
+static void ToggleFinder(const char */*aIdentifier*/, bool aIsRelease) {
+    if (finder == nullptr) {
+        return;
+    }
+
+    if (!aIsRelease) {
+        finder->Toggle();
+    }
+}
+
 static void HandleAccountName(void *account_name) {
     if (!account_name) {
         return;
@@ -136,16 +154,15 @@ static void HandleAccountName(void *account_name) {
 
     Finder::InitImGui(NEXUS->ImguiContext, NEXUS->ImguiMalloc, NEXUS->ImguiFree);
 
+    // register addon renderer
+    NEXUS->RegisterRender(ERenderType_Render, AddonRender);
+    NEXUS->RegisterRender(ERenderType_OptionsRender, AddonSettings);
+
+    NEXUS->AddShortcut("ToggleFinder", "freg_icon", "freg_icon_hover", "ToggleFinder", "Show Finder Window");
+    NEXUS->RegisterKeybindWithString("ToggleFinder", ToggleFinder, "Ctrl+F");
+
     finder->SetRemoteTextureLoader(load_texture);
     finder->SetResourceTextureLoader(load_texture);
-}
-
-static void ToggleFinder(const char */*aIdentifier*/, bool /*aIsRelease*/) {
-    if (finder == nullptr) {
-        return;
-    }
-
-    finder->Toggle();
 }
 
 static void AddonLoad(AddonAPI *api) {
@@ -161,9 +178,6 @@ static void AddonLoad(AddonAPI *api) {
         static_cast<void(*)(void *, void *)>(NEXUS->ImguiFree)
     );
 
-    // register addon renderer
-    NEXUS->RegisterRender(ERenderType_Render, AddonRender);
-
     NEXUS->SubscribeEvent("EV_ACCOUNT_NAME", HandleAccountName);
     NEXUS->RaiseEvent("EV_REQUEST_ACCOUNT_NAME", nullptr);
 
@@ -174,18 +188,34 @@ static void AddonLoad(AddonAPI *api) {
         LoadFregCallback
     );
 
-    NEXUS->AddShortcut("ToggleFinder", "freg", "freg", "ToggleFinder", "Show Finder Window");
-    NEXUS->RegisterKeybindWithString("ToggleFinder", ToggleFinder, "Ctrl+F");
+    NEXUS->LoadTextureFromResource(
+        "freg_icon",
+        FREG_ICON_PNG,
+        ADDON_MODULE,
+        [](const char *, Texture *) {
+        }
+    );
+
+    NEXUS->LoadTextureFromResource(
+        "freg_icon_hover",
+        FREG_ICON_HOVER_PNG,
+        ADDON_MODULE,
+        [](const char *, Texture *) {
+        }
+    );
 }
 
 static void AddonUnload() {
-    // deregister addon renderer
-    NEXUS->DeregisterRender(AddonRender);
-
     NEXUS->UnsubscribeEvent("EV_ACCOUNT_NAME", HandleAccountName);
 
-    NEXUS->RemoveShortcut("ToggleFinder");
-    NEXUS->DeregisterKeybind("ToggleFinder");
+    if (finder != nullptr) {
+        // deregister addon renderer
+        NEXUS->DeregisterRender(AddonRender);
+        NEXUS->DeregisterRender(AddonSettings);
+
+        NEXUS->RemoveShortcut("ToggleFinder");
+        NEXUS->DeregisterKeybind("ToggleFinder");
+    }
 }
 
 extern "C" __declspec(dllexport) AddonDefinition *GetAddonDef() {

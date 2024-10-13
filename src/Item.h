@@ -1,24 +1,6 @@
 #pragma once
 #include "const.h"
 
-const std::map<std::string, std::map<std::string, std::string>> DISPLAY_TYPE_MAP = {
-    {
-        "Armor",
-        {
-            {"Helm", "Head Armor"},
-            {"Shoulders", "Shoulder Armor"},
-            {"Coat", "Chest Armor"},
-            {"Gloves", "Hand Armor"},
-            {"Leggings", "Leg Armor"},
-            {"Boots", "Foot Armor"}
-        }
-    },
-    {
-        "CraftingMaterial",
-        {{"", "Crafting Material"}}
-    }
-};
-
 struct Item {
     int id;
     int storage_id;
